@@ -1,0 +1,715 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #151b26;
+  color: #ffffff;
+  text-align: left;
+ /* height: 100vh; */
+  overflow: hidden;
+  width: 100%;
+
+}
+
+a {
+
+  display: block;
+width: 100%;
+
+}
+
+body.loading #loginForm {
+  display: none; /* Ensure login form is hidden during loading */
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.spinner {
+  position: relative;
+  width: 52.8px;
+  height: 52.8px;
+  perspective: 105.6px;
+}
+
+.spinnercontainer {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  align-content: stretch;
+  justify-content: center;
+}
+
+.spinner div {
+  width: 100%;
+  height: 100%;
+  background: #bfbff7;
+  position: absolute;
+  left: 50%;
+  transform-origin: left;
+  animation: spinner-16s03x 2s infinite;
+}
+
+.spinner div:nth-child(1) {
+  animation-delay: 0.15s;
+}
+
+.spinner div:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.spinner div:nth-child(3) {
+  animation-delay: 0.45s;
+}
+
+.spinner div:nth-child(4) {
+  animation-delay: 0.6s;
+}
+
+.spinner div:nth-child(5) {
+  animation-delay: 0.75s;
+}
+
+@keyframes spinner-16s03x {
+  0% {
+     transform: rotateY(0deg);
+  }
+
+  50%, 80% {
+     transform: rotateY(-180deg);
+  }
+
+  90%, 100% {
+     opacity: 0;
+     transform: rotateY(-180deg);
+  }
+}
+
+
+@keyframes spin {
+  from {
+      transform: rotate(0deg);
+  }
+  to {
+      transform: rotate(360deg);
+  }
+}
+
+
+
+#chatInterface {
+	
+	width: 100%;
+}
+/*
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    display: block !important;
+}
+*/
+
+.error-message {
+    color: #f44336;
+    margin-top: 10px;
+}
+
+#inlinemaker {
+	display: inline;
+	width: 100%;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+#sidebar {
+  min-width: 250px;
+  background-color: #1c2331;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #2c3648;
+  overflow-y: auto;
+  resize: horizontal;
+}
+
+
+
+
+#sidebar, ::-webkit-scrollbar {
+  width: 10px;
+  float: left;
+}
+
+#sidebar::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+  background: #00000033;
+}
+
+
+
+#messageDisplay::-webkit-scrollbar {
+  width: 10px;
+}
+
+#messageDisplay::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+#messageDisplay::-webkit-scrollbar-thumb {
+  background: #1f2d5d;
+}
+
+#channelList::-webkit-scrollbar {
+  width: 10px;
+}
+
+#channelList::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+#channelList::-webkit-scrollbar-thumb {
+  background: #1f2d5d;
+}
+
+
+#userList::-webkit-scrollbar {
+  width: 10px;
+}
+
+#userList::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+#userList::-webkit-scrollbar-thumb {
+  background: darkolivegreen;
+}
+
+
+
+body::-webkit-scrollbar {
+  width: 10px;
+}
+
+body::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+body::-webkit-scrollbar-thumb {
+  background: darkolivegreen;
+}
+
+
+
+.myAuth {
+
+display: flex;
+}
+
+#appIntro {
+display: flex;
+  width: 100%;
+  height: 75px;
+}
+
+#logo {
+
+  text-align: center;
+  background-image: url(logo.png);
+  width: 100%;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+  background-position: center;
+}
+
+#appName {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #4a9eff;
+  text-align: center; 
+  display: none;
+
+}
+
+/* User List Styles */
+#userList {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 15px 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+#userList .user-item {
+    padding: 8px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#userList .user-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+#userList .online-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #4CAF50;
+    display: inline-block;
+    margin-left: 5px;
+}
+
+#userList .user-item.offline .user-name {
+    opacity: 0.6;
+}
+
+#userInfo {
+  padding: 10px 0;
+  border-bottom: 1px solid #2c3648;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#channelSection, #userSection, #adminSection {
+  margin-bottom: 20px;
+}
+
+#channelList, #userList {
+    margin-bottom: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 20px;
+    background: #00000066;
+}
+
+.channel, .user {
+  padding: 8px 10px;
+  margin-bottom: 5px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.channel:hover, .user:hover {
+  background-color: #2c3648;
+}
+
+.channel.active {
+  background-color: #3a4767;
+}
+
+.channelName {
+  flex-grow: 1;
+  cursor: pointer;
+}
+
+.deleteChannelBtn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.7em;
+  padding: 3px 8px;
+  margin-left: 5px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.deleteChannelBtn:hover {
+  opacity: 1;
+}
+
+#mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  /* overflow-y: auto; */
+  width: 100%;
+  height: 100%;
+  color: white;
+}
+
+.input-container {
+    width: 100%;
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-content: center;
+    align-items: stretch;
+}
+
+#preview {
+	width: 20%;
+	display: block;
+}
+
+#loginForm, #registerForm, #createChannelFormArea, #manageUsersArea, #adminPanel {
+      max-width: 400px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: #1c2331;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgb(0 0 0 / 10%);
+    max-height: 400px;
+    position: fixed;
+    left: 50%;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #2c3648;
+  border-radius: 4px;
+  background-color: #242d3e;
+  color: white;
+  box-sizing: border-box;
+}
+
+button {
+  padding: 10px 15px;
+  background-color: #214b7b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #3b8eef;
+}
+
+button:disabled {
+  background-color: #546b8c;
+  cursor: not-allowed;
+}
+
+a {
+  color: #4a9eff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+#chatArea {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+#channelInfo {
+  padding: 15px;
+  border-bottom: 1px solid #2c3648;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.channel-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    margin: 2px 0;
+}
+
+.channel-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.channel-item.active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+#currentChannelTitle {
+  background: #212a3c00;
+  padding: 20px;
+  font-family: monospace;
+  color: #8cc4ff;
+  text-shadow: 0 0 10px #222f57, 0 0 20px #000277, 0 0 30px #415c86, 0 0 40px #0065e6, 0 0 50px #00a5e6, 0 0 60px #002866, 0 0 70px #002b59;
+  border: 1px solid #22488f;
+
+}
+
+#messageDisplay {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.message {
+  margin-bottom: 15px;
+  width: 90%;
+  padding: 10px 15px;
+  border-radius: 0;
+  position: relative;
+  word-break: break-word;
+  background-color: #1c2331;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+  align-self: flex-start;
+}
+
+.message-content {
+padding: 20px;
+}
+
+.message-author {
+  background: #1e1a50;
+  padding: 5px 20px;
+  width: 100%;
+  }
+  
+  .message-time {
+    font-family: monospace;
+    padding-left: 5px;
+}
+    
+
+.message.sent, .message.received {
+  background-color: #2c3648;
+  border-bottom-left-radius: 4px;
+}
+
+.userName {
+  font-weight: bold;
+  margin-bottom: 5px;
+  font-size: 0.8em;
+}
+
+.messageTime {
+  font-size: 0.7em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 5px;
+  text-align: right;
+}
+
+.sendBtn {
+	
+	width: 10%;
+	padding: 20px;
+}
+
+#attachFilesbtn {
+	display: block;
+	width: 30%;
+}
+
+#messageInputArea {
+padding: 15px;
+    display: flex;
+    border-top: 1px solid #2c3648;
+    min-height: 10%;
+	margin-bottom: 1%;
+}
+
+#messageInput {
+    flex: 1;
+    margin-right: 10px;
+    margin-bottom: 0;
+    background: #181818;
+    color: white;
+    height: 100%;
+    width: 100%;
+    font-size: 20px;
+	padding: 10px;
+}
+
+.delete-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: red;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+#assignedUsers, #availableUsers {
+  margin-bottom: 20px;
+}
+
+.assignedUser, .availableUser {
+  padding: 8px;
+  margin-bottom: 5px;
+  background-color: #242d3e;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Add to your existing CSS */
+.knock-request {
+    background: #f0f0f0;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.knock-request button {
+    padding: 4px 12px;
+}
+
+.knock-request .accept {
+    background: #4CAF50;
+    color: white;
+}
+
+.knock-request .decline {
+    background: #f44336;
+    color: white;
+}
+
+
+.note {
+  font-size: 0.8em;
+  color: #f97171;
+  margin-top: 10px;
+}
+
+.welcomeMessage {
+  text-align: center;
+  margin: 50px auto;
+  color: #6d7a96;
+  font-size: 1.2em;
+}
+
+.deleteMessageBtn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.7em;
+  padding: 3px 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.message:hover .deleteMessageBtn {
+  opacity: 1;
+}
+
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255,255,255,.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-left: 10px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error message styling */
+.error-message {
+  color: #f97171;
+  margin-top: 10px;
+  font-size: 0.9em;
+}
+
+/* Modern Checkbox Styling */
+.checkbox-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px;
+}
+
+.custom-checkbox {
+    position: relative;
+    display: inline-block;
+}
+
+.custom-checkbox input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: relative;
+    display: inline-block;
+    height: 20px;
+    width: 20px;
+    background-color: #151b26;
+    border: 2px solid #2d3748;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.custom-checkbox input:checked ~ .checkmark {
+    background-color: #3182ce;
+    border-color: #3182ce;
+}
+
+.custom-checkbox:hover input ~ .checkmark {
+    border-color: #4299e1;
+}
+
+.checkmark:after {
+    content: '';
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.custom-checkbox input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.checkbox-label {
+    color: #e2e8f0;
+    font-size: 14px;
+    user-select: none;
+}
