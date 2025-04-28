@@ -20,7 +20,7 @@ define('ENABLE_ACTIVITY_LOGGING', false);
 // Password reset settings
 define('PASSWORD_RESET_TIMEOUT', 3600); // 1 hour
 define('MAIL_FROM', 'noreply@yourdomain.com');
-define('MAIL_FROM_NAME', 'SecureChat');
+define('MAIL_FROM_NAME', 'Speedchannel');
 
 // Security configuration
 define('SESSION_LIFETIME', 3600); // 1 hour
