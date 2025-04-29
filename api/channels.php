@@ -174,7 +174,8 @@ function handleListChannels($db, $userId) {
 
     $query = "SELECT c.*, 
         CASE WHEN c.creator_id = ? THEN 1 ELSE 0 END as is_creator,
-        CASE WHEN cu.user_id IS NOT NULL THEN 1 ELSE 0 END as is_member
+        CASE WHEN cu.user_id IS NOT NULL THEN 1 ELSE 0 END as is_member,
+        CASE WHEN c.creator_id = ? OR cu.user_id IS NOT NULL OR c.is_private = 0 THEN 1 ELSE 0 END as has_access
     FROM channels c
     LEFT JOIN channel_users cu ON c.id = cu.channel_id AND cu.user_id = ?
     WHERE 
@@ -182,11 +183,12 @@ function handleListChannels($db, $userId) {
         OR c.is_private = 0  -- Open channels
         OR (c.is_private = 1 AND c.is_discoverable = 1)  -- Private discoverable channels
         OR c.creator_id = ?  -- Creator sees their channels
+        OR cu.user_id IS NOT NULL  -- Member sees their channels
     ORDER BY c.name ASC";
 
     return [
         'success' => true,
-        'channels' => $db->fetchAll($query, [$userId, $userId, $isAdmin, $userId])
+        'channels' => $db->fetchAll($query, [$userId, $userId, $userId, $isAdmin, $userId])
     ];
 }
 /**

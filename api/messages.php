@@ -60,27 +60,41 @@ function getMessages() {
 
     $channelId = $_GET['channel_id'] ?? null;
     $includeFiles = $_GET['include_files'] ?? false;
+    $type = $_GET['type'] ?? null;  // Add type parameter for filtering knocks
 
     if (!$channelId) {
         throw new Exception('Channel ID is required.');
     }
 
-    if (!checkChannelAccess($channelId)) {
+    // Allow access to system messages (knocks) for channel creators/admins
+    $channel = $db->fetchOne("SELECT creator_id FROM channels WHERE id = ?", [$channelId]);
+    $isCreatorOrAdmin = ($channel && ($channel['creator_id'] == $_SESSION['user_id'] || $_SESSION['is_admin']));
+
+    if (!$isCreatorOrAdmin && !checkChannelAccess($channelId)) {
         throw new Exception('Access denied.');
     }
 
-    $query = $includeFiles 
-        ? "SELECT m.*, u.username, f.id as file_id, f.original_name as file_name, f.mime_type 
-           FROM messages m 
-           JOIN users u ON m.sender_id = u.id
-           LEFT JOIN files f ON m.id = f.message_id 
-           WHERE m.channel_id = ? 
-           ORDER BY m.created_at ASC"
-        : "SELECT m.*, u.username 
-           FROM messages m 
-           JOIN users u ON m.sender_id = u.id
-           WHERE m.channel_id = ? 
-           ORDER BY m.created_at ASC";
+    // Base query
+    $baseQuery = $includeFiles 
+        ? "SELECT m.*, u.username, f.id as file_id, f.original_name as file_name, f.mime_type" 
+        : "SELECT m.*, u.username";
+
+    // Handle knock messages specifically
+    if ($type === 'knock') {
+        $query = "$baseQuery 
+                 FROM messages m 
+                 JOIN users u ON m.sender_id = u.id
+                 LEFT JOIN files f ON m.id = f.message_id 
+                 WHERE m.channel_id = ? AND m.is_system = 1
+                 ORDER BY m.created_at DESC";
+    } else {
+        $query = "$baseQuery 
+                 FROM messages m 
+                 JOIN users u ON m.sender_id = u.id
+                 LEFT JOIN files f ON m.id = f.message_id 
+                 WHERE m.channel_id = ?
+                 ORDER BY m.created_at ASC";
+    }
 
     $messages = $db->fetchAll($query, [$channelId]);
 
@@ -92,7 +106,6 @@ function getMessages() {
             ENCRYPTION_KEY
         ) ?: '[Decryption failed]';
 
-        // Add is_owner and is_admin properties
         $message['is_owner'] = $message['sender_id'] == $_SESSION['user_id'];
         $message['is_admin'] = $_SESSION['is_admin'] ?? false;
     }

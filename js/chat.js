@@ -128,39 +128,85 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
         }
     }
 
+    
     addMessageToDisplay(message) {
         const messageDisplay = document.getElementById('messageDisplay');
         if (!messageDisplay) return;
-
+    
         const messageDiv = document.createElement('div');
         messageDiv.className = message.is_system ? 'message system-message' : 'message';
-
+    
         // Handle knock messages
-        if (message.is_system && message.content.includes('is knocking')) {
-            const knockTemplate = document.getElementById('knockMessageTemplate');
-            if (knockTemplate) {
-                const knockMessage = knockTemplate.content.cloneNode(true);
-                knockMessage.querySelector('.user').textContent = message.username;
-                const acceptBtn = knockMessage.querySelector('.accept');
-                const declineBtn = knockMessage.querySelector('.decline');
-                if (acceptBtn) acceptBtn.dataset.knockId = message.id;
-                if (declineBtn) declineBtn.dataset.knockId = message.id;
-                messageDisplay.appendChild(knockMessage);
-                return;
-            }
-        }
+      // In addMessageToDisplay method:
+  // In addMessageToDisplay method:
+if (message.is_system && message.content.includes('is requesting to join')) {
+    // Only show knock requests to channel creator or admin
+    const channel = this.app.channels.channels.find(ch => ch.id == this.currentChannel);
+    const isCreator = channel?.creator_id === this.app.currentUser?.id;
+    const isAdmin = this.app.currentUser?.is_admin;
 
+    if (isCreator || isAdmin) {
+        const knockTemplate = document.getElementById('knockMessageTemplate');
+        if (knockTemplate) {
+            const knockMessage = knockTemplate.content.cloneNode(true);
+            knockMessage.querySelector('.user').textContent = message.username || message.sender_username;
+            
+            const acceptBtn = knockMessage.querySelector('.accept');
+            const declineBtn = knockMessage.querySelector('.decline');
+            
+            // In the message creation/display code
+             acceptBtn.onclick = () => this.handleKnockResponse(message.id, true);
+            declineBtn.onclick = () => this.handleKnockResponse(message.id, false);
+            
+            messageDiv.appendChild(knockMessage);
+            messageDisplay.appendChild(messageDiv);
+            return;
+        }
+    } else {
+        // For non-creators, just show their own knock requests
+        if (message.sender_id === this.app.currentUser?.id) {
+            messageDiv.innerHTML = `<div class="knock-pending">Your join request is pending...</div>`;
+            messageDisplay.appendChild(messageDiv);
+        }
+        return;
+    }
+}
+    
+        // Regular message handling (your existing code)
         messageDiv.innerHTML = `
-        <div class="message-header">
-        <span class="message-author">${this.escapeHtml(message.username || message.sender_username || 'Unknown')}</span>
-        <span class="message-time">${this.formatTime(message.created_at)}</span>
-        ${message.is_owner || message.is_admin ? '<button class="delete-btn" data-id="'+message.id+'"data-action="open-delete-modal">Delete</button>' : ''}    </div>
-    <div class="message-content">${this.escapeHtml(message.content)}</div>
+            <div class="message-header">
+                <span class="message-author">${this.escapeHtml(message.username || message.sender_username || 'Unknown')}</span>
+                <span class="message-time">${this.formatTime(message.created_at)}</span>
+                ${message.is_owner || message.is_admin ? '<button class="delete-btn" data-id="'+message.id+'"data-action="open-delete-modal">Delete</button>' : ''}
+            </div>
+            <div class="message-content">${this.escapeHtml(message.content)}</div>
         `;
         messageDisplay.appendChild(messageDiv);
-        messageDisplay.scrollTop = messageDisplay.scrollHeight; // Auto-scroll to the bottom
+        messageDisplay.scrollTop = messageDisplay.scrollHeight;
     }
 
+
+    async handleKnockResponse(messageId, accepted) {
+        try {
+            const response = await this.app.api.post('/channel_users.php', {
+                action: 'knock_response',
+                knock_id: messageId,  // Use the actual messageId parameter
+                accepted: accepted
+            });
+    
+            if (response.success) {
+                // Remove the knock message from display
+                const knockMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+                if (knockMessage) {
+                    knockMessage.remove();
+                }
+                // Refresh messages
+                await this.loadMessages(this.currentChannel);
+            }
+        } catch (error) {
+            this.app.handleError(error);
+        }
+    }
 
     async loadMessages(channelId) {
         console.log(`Loading messages for channel ${channelId}`);
@@ -238,16 +284,20 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
     }
 
     async switchChannel(channelId) {
-        console.log(`Switching to channel ${channelId}`);
-        if (!channelId) return;
-    
-        try {
-            // Fetch channel from centralized source
-            const channel = this.app.channels.channels.find(ch => ch.id == channelId);
-            if (!channel) throw new Error('Channel not found');
-    
-            // Handle private channels
-            if (channel.is_private) {
+    console.log(`Switching to channel ${channelId}`);
+    if (!channelId) return;
+
+    try {
+        const channel = this.app.channels.channels.find(ch => ch.id == channelId);
+        if (!channel) throw new Error('Channel not found');
+
+        // Handle private channels first, before access check
+        if (channel.is_private) {
+            const isCreator = channel.creator_id === this.app.currentUser?.id;
+            const isAdmin = this.app.currentUser?.is_admin;
+            const isMember = Boolean(channel.is_member);
+
+            if (!isCreator && !isAdmin && !isMember) {
                 try {
                     const knockResponse = await this.app.api.post('/channel_users.php', {
                         action: 'knock',
@@ -255,34 +305,44 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
                     });
                     if (knockResponse.success) {
                         this.app.ui.showMessage('Knock request sent to channel admin');
-                        return; // Stop further execution if knock is required
+                        return; // Stop here - don't try to access the channel
                     }
                 } catch (error) {
-                    if (error.message !== 'Already a member') {
+                    if (error.message === 'Already a member') {
+                        // Continue with channel access
+                    } else {
                         this.app.handleError(error);
                         return;
                     }
                 }
             }
-    
-            // Verify access to the channel
-            const accessResponse = await this.app.api.get(`/channels.php?action=verify_access&channel_id=${channelId}`);
-            if (!accessResponse.success) throw new Error('Access denied');
-    
-            // Set the current channel and update UI
-            this.currentChannel = channelId;
-            document.getElementById('messageInputArea').hidden = false;
-            document.getElementById('channelInfo').hidden = false;
-            document.getElementById('currentChannelTitle').textContent = channel.name;
-    
-            // Load messages for the channel
-            await this.loadMessages(channelId);
-        } catch (error) {
-            console.error('Error switching channel:', error);
-            this.app.ui.showError(error.message);
         }
-    }
 
+        document.getElementById("messageInputArea").style.display = "block";
+        this.app.modalManager.hideAll();
+        this.currentChannel = channel.id;
+        this.app.chat.currentChannel = channel.id;
+        document.getElementById('currentChannelTitle').textContent = `# ${this.escapeHtml(channel.name)}`;
+        document.getElementById('channelInfo').hidden = false;
+        document.getElementById('channel-controls').hidden = false;
+
+        // Load messages first
+        await this.app.chat.loadMessages(channel.id);
+
+        // Then set up UI controls and check knocks
+        const settingsButton = document.getElementById('channelSettingsBtn');
+        const manageUsersButton = document.getElementById('manageUsersBtn');
+        settingsButton.disabled = !(isAdmin || isCreator);
+        manageUsersButton.disabled = !(isAdmin || isCreator);
+
+        if (isCreator || isAdmin) {
+            await this.checkPendingKnocks(this.currentChannel);
+        }
+    } catch (error) {
+        console.error('Channel switch error:', error);
+        this.app.handleError(error);
+    }
+}
     clearMessages() {
         const messageDisplay = document.getElementById('messageDisplay');
         if (messageDisplay) {

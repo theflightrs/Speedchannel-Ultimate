@@ -261,7 +261,7 @@ class ChannelManager {
     
                 const isAdmin = this.app.currentUser?.is_admin;
                 const isCreator = ch.creator_id === this.app.currentUser?.id;
-                const channelIcon = ch.is_private ? '🔒' : '';
+                const lockIcon = ch.is_private && !ch.has_access ? '🔒' : '';
                 const creatorBadge = isCreator ? ' 👑' : '';
                 const adminBadge = isAdmin && !isCreator ? ' 🛡️' : '';
     
@@ -272,7 +272,7 @@ class ChannelManager {
                          data-is-creator="${isCreator ? 'true' : 'false'}"
                          data-is-admin="${isAdmin ? 'true' : 'false'}"
                          data-action="switch-channel">
-                        ${this.escapeHtml(ch.name)} ${channelIcon}${creatorBadge}${adminBadge}
+                        ${this.escapeHtml(ch.name)} ${lockIcon}${creatorBadge}${adminBadge}
                     </div>
                 `;
             })
@@ -301,7 +301,6 @@ class ChannelManager {
        
     }
 
-
     async switchChannel(channelId) {
         console.log(`Attempting to switch to channel ${channelId}`);
     
@@ -319,29 +318,73 @@ class ChannelManager {
     
             const isAdmin = this.app.currentUser?.is_admin;
             const isCreator = channel.creator_id === this.app.currentUser?.id;
+            const isMember = Boolean(channel.is_member);
+    
+            // If it's a private channel and user is not admin, creator, or member
+            if (channel.is_private && !isAdmin && !isCreator && !isMember) {
+                try {
+                    const knockResponse = await this.app.api.post('/channel_users.php', {
+                        action: 'knock',
+                        channel_id: channelId
+                    });
+    
+                    if (knockResponse.success) {
+                        this.app.ui.showMessage('Request sent to channel creator');
+                        return;
+                    }
+                } catch (error) {
+                    if (error.message === 'Already a member') {
+                        // Continue with channel switch
+                    } else {
+                        this.app.handleError(error);
+                        return;
+                    }
+                }
+            }
     
             document.getElementById("messageInputArea").style.display = "block";
             this.app.modalManager.hideAll();
-            this.currentChannel = channel.id; // Ensure channelId is stored
+            this.currentChannel = channel.id;
             this.app.chat.currentChannel = channel.id;
             document.getElementById('currentChannelTitle').textContent = `# ${this.escapeHtml(channel.name)}`;
             document.getElementById('channelInfo').hidden = false;
             document.getElementById('channel-controls').hidden = false;
     
-            // Enable or disable buttons based on roles
             const settingsButton = document.getElementById('channelSettingsBtn');
             const manageUsersButton = document.getElementById('manageUsersBtn');
             settingsButton.disabled = !(isAdmin || isCreator);
             manageUsersButton.disabled = !(isAdmin || isCreator);
     
-            editChannelPrivate.checked = channel.is_private;
-            editChannelDiscoverable.checked = channel.is_discoverable;
-            document.getElementById('editChannelName').value = channel.name;
+            if (isCreator || isAdmin) {
+                await this.checkPendingKnocks(channelId);
+            }
     
-            await this.app.chat.loadMessages(channel.id); // Pass channelId
+            await this.app.chat.loadMessages(channel.id);
         } catch (error) {
             console.error('Channel switch error:', error);
             this.app.handleError(error);
+        }
+    }
+    
+    // Add this method to check for pending knocks
+    async checkPendingKnocks(channelId) {
+        if (!channelId) return;
+    
+        try {
+            const params = new URLSearchParams({
+                type: 'knock',
+                channel_id: channelId
+            });
+    
+            const response = await this.app.api.get(`/messages.php?${params.toString()}`);
+            if (response.success && response.messages?.length > 0) {
+                // Just display knock messages in chat
+                response.messages.forEach(message => {
+                    this.app.chat.addMessageToDisplay(message);
+                });
+            }
+        } catch (error) {
+            console.error('Error checking knocks:', error);
         }
     }
 

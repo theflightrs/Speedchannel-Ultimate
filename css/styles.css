@@ -572,13 +572,13 @@ padding: 15px;
 
 /* Add to your existing CSS */
 .knock-request {
-    background: #f0f0f0;
-    padding: 12px;
-    margin: 8px 0;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  background: #17212d;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .knock-request button {

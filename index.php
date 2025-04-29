@@ -218,11 +218,11 @@ error_log("[INDEX] Security instance created")
              
 
 
-				<template id="knockMessageTemplate">
-    <div class="knock-request">
+                <template id="knockMessageTemplate">
+    <div class="knock-request" data-message-id="${message.id}">
         <span class="user"></span> is requesting to join this channel
-        <button class="accept" onclick="app.chat.handleKnockResponse(this.dataset.knockId, true)">Accept</button>
-        <button class="decline" onclick="app.chat.handleKnockResponse(this.dataset.knockId, false)">Decline</button>
+        <button class="accept">Accept</button>
+        <button class="decline">Decline</button>
     </div>
 </template>
 

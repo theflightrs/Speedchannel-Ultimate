@@ -1,8 +1,22 @@
 <?php
+
 define('SECURE_ENTRY', true);
 require_once('../config.php');
 require_once('../Security.php');
 require_once('../db_setup.php');
+
+// After requires, before class definition
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/knock_error.log');
+
+// Inside handleRequest(), before the switch:
+error_log("Received request: " . print_r([
+    'method' => $_SERVER['REQUEST_METHOD'],
+    'input' => file_get_contents('php://input')
+], true));
+
 
 class ChannelUserHandler {
     private $db;
@@ -29,13 +43,18 @@ class ChannelUserHandler {
                     $this->handleGetChannelUsers();
                     break;
                     
-                case 'POST':
-                    if ($action === 'knock') {
-                        $this->handleKnock();
-                    } else {
-                        $this->handleAssignUser();
-                    }
-                    break;
+                    case 'POST':
+                        switch ($action) {
+                            case 'knock':
+                                $this->handleKnock();
+                                break;
+                            case 'knock_response':
+                                $this->handleKnockResponse();
+                                break;
+                            default:
+                                $this->handleAssignUser();
+                        }
+                        break;
                     
                 case 'DELETE':
                     $this->handleRemoveUser();
@@ -86,48 +105,125 @@ class ChannelUserHandler {
 	
 	
 	private function handleKnock() {
-    $data = json_decode(file_get_contents('php://input'), true);
-    $channelId = $data['channel_id'] ?? null;
-    
-    if (!$channelId) {
-        throw new Exception('Channel ID required', 400);
-    }
-    
-    // Verify channel exists and is private
-    $channel = $this->db->fetchOne(
-        "SELECT * FROM channels WHERE id = ? AND is_private = TRUE",
-        [$channelId]
-    );
-    
-    if (!$channel) {
-        throw new Exception('Channel not found or not private', 404);
-    }
-    
-    // Check if user is already a member
-    $isMember = $this->db->fetchOne(
-        "SELECT 1 FROM channel_users WHERE channel_id = ? AND user_id = ?",
+        $data = json_decode(file_get_contents('php://input'), true);
+        $channelId = $data['channel_id'] ?? null;
+        
+        if (!$channelId) {
+            throw new Exception('Channel ID required', 400);
+        }
+        
+    // Check for existing pending knock
+    $existingKnock = $this->db->fetchOne(
+        "SELECT 1 FROM messages 
+         WHERE channel_id = ? AND sender_id = ? AND is_system = 1",
         [$channelId, $_SESSION['user_id']]
     );
     
-    if ($isMember) {
-        throw new Exception('Already a member', 400);
+    if ($existingKnock) {
+        throw new Exception('Already requested to join', 400);
     }
     
-    // Create knock message
-    $this->db->insert(
-        "INSERT INTO messages (channel_id, sender_id, encrypted_content, iv, tag, is_system)
-         VALUES (?, ?, ?, ?, ?, TRUE)",
-        [
-            $channelId,
-            $_SESSION['user_id'],
-            "User {$_SESSION['username']} is knocking", // You might want to encrypt this
-            '', // IV for encryption
-            '', // Tag for encryption
-        ]
-    );
+        
+        // Verify channel exists and is private
+        $channel = $this->db->fetchOne(
+            "SELECT * FROM channels WHERE id = ? AND is_private = TRUE",
+            [$channelId]
+        );
+        
+        if (!$channel) {
+            throw new Exception('Channel not found or not private', 404);
+        }
+        
+        // Check if user is already a member
+        $isMember = $this->db->fetchOne(
+            "SELECT 1 FROM channel_users WHERE channel_id = ? AND user_id = ?",
+            [$channelId, $_SESSION['user_id']]
+        );
+        
+        if ($isMember) {
+            throw new Exception('Already a member', 400);
+        }
+        
+        // Create knock message with proper system message flag
+        $knockMessage = "User {$_SESSION['username']} is requesting to join this channel";
+        $encrypted = $this->security->encrypt($knockMessage, ENCRYPTION_KEY);
+        
+        $messageId = $this->db->insert(
+            "INSERT INTO messages (channel_id, sender_id, encrypted_content, iv, tag, is_system)
+             VALUES (?, ?, ?, ?, ?, 1)",
+            [
+                $channelId,
+                $_SESSION['user_id'],
+                $encrypted['ciphertext'],
+                $encrypted['iv'],
+                $encrypted['tag']
+            ]
+        );
     
-    echo json_encode(['success' => true]);
-}
+        if (!$messageId) {
+            throw new Exception('Failed to create knock message');
+        }
+        
+        echo json_encode(['success' => true, 'message_id' => $messageId]);
+    }
+
+    private function handleKnockResponse() {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            if (!isset($data['knock_id'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Knock ID required']);
+                return;
+            }
+    
+            try {
+                $knock = $this->db->fetchOne(
+                    "SELECT m.id, m.sender_id, c.id as channel_id, c.creator_id 
+                     FROM messages m
+                     JOIN channels c ON m.channel_id = c.id
+                     WHERE m.id = ? AND m.is_system = 1",
+                    [$data['knock_id']]
+                );
+            } catch (PDOException $e) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'Database query failed']);
+                return;
+            }
+    
+            if (!$knock) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Knock request not found']);
+                return;
+            }
+    
+            // First delete the knock message
+            $this->db->delete(
+                "DELETE FROM messages WHERE id = ? AND is_system = 1",
+                [$data['knock_id']]
+            );
+    
+            // Then if accepted, add to channel
+            if ($data['accepted']) {
+                try {
+                    $this->db->insert(
+                        "INSERT IGNORE INTO channel_users (channel_id, user_id, role, joined_at)
+                        VALUES (?, ?, 'member', UTC_TIMESTAMP())",
+                        [$knock['channel_id'], $knock['sender_id']]
+                    );
+                } catch (PDOException $e) {
+                    http_response_code(500);
+                    echo json_encode(['success' => false, 'error' => 'Failed to add user to channel']);
+                    return;
+                }
+            }
+    
+            echo json_encode(['success' => true]);
+    
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internal server error']);
+        }
+    }
 	
     
     private function handleGetChannelUsers() {

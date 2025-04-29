@@ -1,0 +1,440 @@
+[29-Apr-2025 23:22:59 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:22:59 Europe/Vienna] Query failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'handled' in 'field list'
+[29-Apr-2025 23:22:59 Europe/Vienna] PHP Fatal error:  Uncaught TypeError: http_response_code(): Argument #1 ($response_code) must be of type int, string given in /home/.sites/367/site8005016/web/chat2/api/channel_users.php:215
+Stack trace:
+#0 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(215): http_response_code('42S22')
+#1 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(52): ChannelUserHandler->handleKnockResponse()
+#2 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(401): ChannelUserHandler->handleRequest()
+#3 {main}
+  thrown in /home/.sites/367/site8005016/web/chat2/api/channel_users.php on line 215
+[29-Apr-2025 23:23:09 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:23:09 Europe/Vienna] Query failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'handled' in 'field list'
+[29-Apr-2025 23:23:09 Europe/Vienna] PHP Fatal error:  Uncaught TypeError: http_response_code(): Argument #1 ($response_code) must be of type int, string given in /home/.sites/367/site8005016/web/chat2/api/channel_users.php:215
+Stack trace:
+#0 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(215): http_response_code('42S22')
+#1 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(52): ChannelUserHandler->handleKnockResponse()
+#2 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(401): ChannelUserHandler->handleRequest()
+#3 {main}
+  thrown in /home/.sites/367/site8005016/web/chat2/api/channel_users.php on line 215
+[29-Apr-2025 23:25:44 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:25:44 Europe/Vienna] Query failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'handled' in 'field list'
+[29-Apr-2025 23:25:55 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:25:55 Europe/Vienna] Query failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'handled' in 'field list'
+[29-Apr-2025 23:28:04 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:28:04 Europe/Vienna] Debug - Knock ID: 328, Accepted: true
+[29-Apr-2025 23:28:04 Europe/Vienna] Query failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'handled' in 'field list'
+[29-Apr-2025 23:29:35 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:29:35 Europe/Vienna] Query failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'm.handled' in 'where clause'
+[29-Apr-2025 23:29:35 Europe/Vienna] Knock Response Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'm.handled' in 'where clause'
+[29-Apr-2025 23:29:35 Europe/Vienna] PHP Fatal error:  Uncaught TypeError: http_response_code(): Argument #1 ($response_code) must be of type int, string given in /home/.sites/367/site8005016/web/chat2/api/channel_users.php:215
+Stack trace:
+#0 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(215): http_response_code('42S22')
+#1 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(52): ChannelUserHandler->handleKnockResponse()
+#2 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(400): ChannelUserHandler->handleRequest()
+#3 {main}
+  thrown in /home/.sites/367/site8005016/web/chat2/api/channel_users.php on line 215
+[29-Apr-2025 23:29:49 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:29:49 Europe/Vienna] Query failed: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'm.handled' in 'where clause'
+[29-Apr-2025 23:29:49 Europe/Vienna] Knock Response Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'm.handled' in 'where clause'
+[29-Apr-2025 23:29:49 Europe/Vienna] PHP Fatal error:  Uncaught TypeError: http_response_code(): Argument #1 ($response_code) must be of type int, string given in /home/.sites/367/site8005016/web/chat2/api/channel_users.php:215
+Stack trace:
+#0 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(215): http_response_code('42S22')
+#1 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(52): ChannelUserHandler->handleKnockResponse()
+#2 /home/.sites/367/site8005016/web/chat2/api/channel_users.php(400): ChannelUserHandler->handleRequest()
+#3 {main}
+  thrown in /home/.sites/367/site8005016/web/chat2/api/channel_users.php on line 215
+[29-Apr-2025 23:30:55 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:31:08 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"25"}
+)
+
+[29-Apr-2025 23:31:14 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:31:19 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:31:27 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:33:54 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:33:57 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:33:58 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:33:59 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:34:04 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:34:05 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:34:31 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:40:34 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"40"}
+)
+
+[29-Apr-2025 23:42:54 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"25"}
+)
+
+[29-Apr-2025 23:43:07 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"40"}
+)
+
+[29-Apr-2025 23:43:11 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":329,"accepted":true}
+)
+
+[29-Apr-2025 23:43:12 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:43:15 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":329,"accepted":true}
+)
+
+[29-Apr-2025 23:43:16 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:43:17 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:43:18 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:43:18 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:43:18 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":328,"accepted":true}
+)
+
+[29-Apr-2025 23:44:14 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"41"}
+)
+
+[29-Apr-2025 23:44:17 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":331,"accepted":true}
+)
+
+[29-Apr-2025 23:44:44 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":331,"accepted":false}
+)
+
+[29-Apr-2025 23:44:45 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":331,"accepted":true}
+)
+
+[29-Apr-2025 23:46:58 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"41"}
+)
+
+[29-Apr-2025 23:59:52 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"41"}
+)
+
+[30-Apr-2025 00:00:27 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":"${message.id}","accepted":true}
+)
+
+[30-Apr-2025 00:00:28 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":"${message.id}","accepted":true}
+)
+
+[30-Apr-2025 00:00:57 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"42"}
+)
+
+[30-Apr-2025 00:01:01 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":"${message.id}","accepted":true}
+)
+
+[30-Apr-2025 00:01:12 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"42"}
+)
+
+[30-Apr-2025 00:01:19 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"42"}
+)
+
+[30-Apr-2025 00:01:21 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"42"}
+)
+
+[30-Apr-2025 00:01:23 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":"${message.id}","accepted":true}
+)
+
+[30-Apr-2025 00:01:33 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":"${message.id}","accepted":true}
+)
+
+[30-Apr-2025 00:01:44 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":"${message.id}","accepted":false}
+)
+
+[30-Apr-2025 00:07:36 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":true}
+)
+
+[30-Apr-2025 00:07:55 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":false}
+)
+
+[30-Apr-2025 00:07:58 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":false}
+)
+
+[30-Apr-2025 00:07:59 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":false}
+)
+
+[30-Apr-2025 00:07:59 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":true}
+)
+
+[30-Apr-2025 00:08:03 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":true}
+)
+
+[30-Apr-2025 00:08:04 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":true}
+)
+
+[30-Apr-2025 00:08:05 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":true}
+)
+
+[30-Apr-2025 00:08:05 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":true}
+)
+
+[30-Apr-2025 00:08:05 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":true}
+)
+
+[30-Apr-2025 00:08:05 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":false}
+)
+
+[30-Apr-2025 00:08:06 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":false}
+)
+
+[30-Apr-2025 00:08:06 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":false}
+)
+
+[30-Apr-2025 00:10:33 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":false}
+)
+
+[30-Apr-2025 00:10:35 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":true}
+)
+
+[30-Apr-2025 00:10:36 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":true}
+)
+
+[30-Apr-2025 00:18:56 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":335,"accepted":true}
+)
+
+[30-Apr-2025 00:19:51 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"43"}
+)
+
+[30-Apr-2025 00:19:59 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"43"}
+)
+
+[30-Apr-2025 00:20:04 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"43"}
+)
+
+[30-Apr-2025 00:20:07 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":337,"accepted":true}
+)
+

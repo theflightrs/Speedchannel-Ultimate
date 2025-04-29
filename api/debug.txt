@@ -1,0 +1,12 @@
+Array
+(
+    [method] => POST
+    [action] => knock_response
+    [data] => Array
+        (
+            [action] => knock_response
+            [knock_id] => 328
+            [accepted] => 1
+        )
+
+)

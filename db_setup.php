@@ -63,8 +63,10 @@ function initializeDatabase() {
                 iv VARCHAR(32) NOT NULL,
                 tag VARCHAR(32) NOT NULL,
                 has_attachment BOOLEAN DEFAULT FALSE,
+                is_system BOOLEAN DEFAULT FALSE, 
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 edited_at TIMESTAMP NULL,
+                handled TINYINT(1) NOT NULL DEFAULT 0,
                 FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
                 FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
             )",
