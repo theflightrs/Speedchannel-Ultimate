@@ -91,7 +91,7 @@ error_log("[INDEX] Security instance created")
 
 
                 <!-- Admin Section -->
-                <div id="adminSection" hidden>
+                <div id="adminSection">
                     <h3>Admin</h3>
                    <button id="adminBtn" data-action="toggle-admin-panel">Admin Panel</button>
           

@@ -138,6 +138,7 @@ class App {
                             if (currentChannel) {
                                 document.getElementById('editChannelName').value = currentChannel.name;
                                 document.getElementById('editChannelPrivate').checked = currentChannel.is_private;
+                                this.modalManager.hideAll();
                                 this.modalManager.openModal('channelSettingsModal');
                             }
                         } else {
@@ -150,6 +151,7 @@ class App {
                         break;
 
                     case 'manage-users':
+                        this.modalManager.hideAll();
                         this.modalManager.openModal('manageUsersModal');
                         break;
 
@@ -165,6 +167,7 @@ class App {
                         break;
 
                     case 'create-channel':
+                        this.modalManager.hideAll();
                         this.modalManager.openModal('createChannelModal');
                         break;
 

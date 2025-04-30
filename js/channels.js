@@ -8,15 +8,12 @@ class ChannelManager {
         this.initializeEventListeners();
     }
 
-    
     checkChannelAccess(channel, user) {
         const isAdmin = Boolean(user?.is_admin);
         const isCreator = channel.creator_id === user?.id;
         const isMember = Boolean(channel.is_member);
-    
         return { isAdmin, isCreator, isMember };
     }
-
 
     async loadCurrentUser() {
         try {
@@ -39,21 +36,22 @@ class ChannelManager {
         const settingsForm = document.getElementById('channelSettingsForm');
         const channelList = document.getElementById('channelList');
         const privateCheckbox = document.getElementById('channelPrivate');
-    
+        const manageUsersBtn = document.getElementById('manageUsersBtn');
+
         if (createForm) {
             createForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 await this.handleChannelCreation();
             });
         }
-    
+
         if (settingsForm) {
             settingsForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 this.saveChannelSettings();
             });
         }
-    
+
         if (channelList) {
             channelList.addEventListener('click', (e) => {
                 const channelItem = e.target.closest('.channel-item');
@@ -66,66 +64,7 @@ class ChannelManager {
                 }
             });
         }
-    
-        if (privateCheckbox) {
-            privateCheckbox.addEventListener('change', function () {
-                const discoverableWrapper = document.getElementById('channelDiscoverable')
-                    .closest('.checkbox-wrapper');
-                discoverableWrapper.style.display = this.checked ? 'inline-flex' : 'none';
-                if (!this.checked) {
-                    document.getElementById('channelDiscoverable').checked = true;
-                }
-            });
-        }
 
-   
-        document.getElementById('manageUsersBtn').addEventListener('click', () => {
-            this.app.modalManager.openModal('manageUsersModal'); // Changed from show to openModal
-            this.loadChannelUsers();
-        });
-    }
-
-
-
-    
-    setupChannelCreation() {
-        const createForm = document.getElementById('createChannelForm');
-        if (createForm) {
-            createForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await this.handleChannelCreation();
-            });
-        }
-    }
-
-    setupChannelSettings() {
-        const settingsForm = document.getElementById('channelSettingsForm');
-        if (settingsForm) {
-            settingsForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.saveChannelSettings();
-            });
-        }
-    }
-
-    setupChannelList() {
-        const channelList = document.getElementById('channelList');
-        if (channelList) {
-            channelList.addEventListener('click', (e) => {
-                const channelItem = e.target.closest('.channel-item');
-                if (channelItem?.dataset.channelId) {
-                    const channelId = channelItem.dataset.channelId;
-                    console.log(`Switching to channel ID: ${channelId}`);
-                    this.switchChannel(channelId); // Ensure channelId is passed here
-                } else {
-                    console.warn('Channel ID missing in clicked element.');
-                }
-            });
-        }
-    }
-
-    setupPrivateCheckbox() {
-        const privateCheckbox = document.getElementById('channelPrivate');
         if (privateCheckbox) {
             privateCheckbox.addEventListener('change', function() {
                 const discoverableWrapper = document.getElementById('channelDiscoverable')
@@ -136,6 +75,38 @@ class ChannelManager {
                 }
             });
         }
+
+        if (manageUsersBtn) {
+            manageUsersBtn.addEventListener('click', () => {
+                this.app.modalManager.hideAll();
+                this.app.modalManager.openModal('manageUsersModal');
+                this.loadChannelUsers();
+            });
+        }
+
+        document.addEventListener('click', async (e) => {
+            const action = e.target.dataset.action;
+            if (action === 'add-user') {
+                const userId = e.target.dataset.userId;
+                await this.inviteUserToChannel(userId);
+            }
+        });
+    }
+
+    handleInvitationMessage(message) {
+        const content = JSON.parse(message.content);
+        const invitationHtml = `
+            <div class="channel-invitation">
+                <p>You've been invited to join ${this.escapeHtml(content.channel_name)}</p>
+                <button data-action="respond-invitation" data-message-id="${message.id}" data-response="accept">Accept</button>
+                <button data-action="respond-invitation" data-message-id="${message.id}" data-response="decline">Decline</button>
+            </div>
+        `;
+        
+        this.app.chat.addMessageToDisplay({
+            ...message,
+            content: invitationHtml
+        });
     }
 
     async handleChannelCreation() {
@@ -154,92 +125,6 @@ class ChannelManager {
                 this.app.modalManager.hideAll('createChannelModal');
                 await this.loadChannels();
                 document.getElementById('channelName').value = '';
-            }
-        } catch (error) {
-            this.app.handleError(error);
-        }
-    }
-
-    async deleteChannel() {
-        if (!this.app.chat.currentChannel) return;
-        
-        try {
-            const response = await this.app.api.post('/channels.php', {
-                action: 'delete',
-                channel_id: this.app.chat.currentChannel
-            });
-
-            if (response.success) {
-                this.channels = this.channels.filter(ch => ch.id != this.app.chat.currentChannel);
-                this.renderChannelList();
-                this.app.modalManager.hideAll();
-                this.app.chat.currentChannel = null;
-                document.getElementById('channelInfo').hidden = true;
-                document.getElementById('messageDisplay').innerHTML = '';
-            }
-        } catch (error) {
-            this.app.handleError(error);
-        }
-    }
-
-
-    async loadChannelUsers() {
-        try {
-            const channelId = this.currentChannel;
-            if (!channelId) {
-                throw new Error('No channel selected');
-            }
-    
-            const response = await this.app.api.get(`/channel_users.php?action=list&channel_id=${channelId}`);
-            console.log('Channel users response:', response);
-    
-            // Check for response.data since the arrays are nested inside data
-            if (response.success && response.data) {
-                const userList = document.getElementById('channelUsersList');
-                if (userList && response.data.users) {
-                    userList.innerHTML = response.data.users.map(user => `
-                        <div class="channel-user" data-user-id="${user.id}">
-                            <div class="user-info">
-                                <span>${user.username}</span>
-                                ${user.is_creator ? ' 👑' : ''}
-                            </div>
-                            ${!user.is_creator ? 
-                                `<button class="remove-user" data-action="remove-user" data-user-id="${user.id}">Remove</button>` : 
-                                ''}
-                        </div>
-                    `).join('');
-                }
-    
-                const availableList = document.getElementById('availableUsersList');
-                if (availableList && response.data.available_users) {
-                    availableList.innerHTML = response.data.available_users.map(user => `
-                        <div class="available-user" data-user-id="${user.id}">
-                            <div class="user-info">
-                                <span>${user.username}</span>
-                                ${user.is_admin ? ' 🛡️' : ''}
-                            </div>
-                            <button class="add-user" data-action="add-user" data-user-id="${user.id}">Add</button>
-                        </div>
-                    `).join('');
-                }
-            }
-        } catch (error) {
-            console.error('Error loading channel users:', error);
-            this.app.handleError(error);
-        }
-    }
-    
-    async removeUserFromChannel(userId) {
-        try {
-            const response = await this.app.api.post('/channel_users.php', {
-                action: 'remove',
-                channel_id: this.app.chat.currentChannel,
-                user_id: userId
-            });
-    
-            if (response.success) {
-                await this.loadChannelUsers(); // Refresh the list
-                this.app.ui.showMessage('User removed from channel');
             }
         } catch (error) {
             this.app.handleError(error);
@@ -277,6 +162,110 @@ class ChannelManager {
         }
     }
 
+    async deleteChannel() {
+        if (!this.app.chat.currentChannel) return;
+        
+        try {
+            const response = await this.app.api.post('/channels.php', {
+                action: 'delete',
+                channel_id: this.app.chat.currentChannel
+            });
+
+            if (response.success) {
+                this.channels = this.channels.filter(ch => ch.id != this.app.chat.currentChannel);
+                this.renderChannelList();
+                this.app.modalManager.hideAll();
+                this.app.chat.currentChannel = null;
+                document.getElementById('currentChannelTitle').textContent = 'No channel selected';
+                document.getElementById('channelInfo').hidden = true;
+                document.getElementById('messageDisplay').innerHTML = '';
+            }
+        } catch (error) {
+            this.app.handleError(error);
+        }
+    }
+
+    async loadChannelUsers() {
+        try {
+            const channelId = this.currentChannel;
+            if (!channelId) {
+                throw new Error('No channel selected');
+            }
+
+            const response = await this.app.api.get(`/channel_users.php?action=list&channel_id=${channelId}`);
+            console.log('Channel users response:', response);
+
+            if (response.success && response.data) {
+                const userList = document.getElementById('channelUsersList');
+                if (userList && response.data.users) {
+                    userList.innerHTML = response.data.users.map(user => `
+                        <div class="channel-user" data-user-id="${user.id}">
+                            <div class="user-info">
+                                <span>${user.username}</span>
+                                ${user.is_creator ? ' 👑' : ''}
+                            </div>
+                            ${!user.is_creator ? 
+                                `<button class="remove-user" data-action="remove-user" data-user-id="${user.id}">Remove</button>` : 
+                                ''}
+                        </div>
+                    `).join('');
+                }
+
+                const availableList = document.getElementById('availableUsersList');
+                if (availableList && response.data.available_users) {
+                    availableList.innerHTML = response.data.available_users.map(user => `
+                        <div class="available-user" data-user-id="${user.id}">
+                            <div class="user-info">
+                                <span>${user.username}</span>
+                                ${user.is_admin ? ' 🛡️' : ''}
+                            </div>
+                            <button class="add-user" data-action="add-user" data-user-id="${user.id}">Add</button>
+                        </div>
+                    `).join('');
+                }
+            }
+        } catch (error) {
+            console.error('Error loading channel users:', error);
+            this.app.handleError(error);
+        }
+    }
+
+    async removeUserFromChannel(userId) {
+        try {
+            const response = await this.app.api.post('/channel_users.php', {
+                action: 'remove',
+                channel_id: this.app.chat.currentChannel,
+                user_id: userId
+            });
+
+            if (response.success) {
+                await this.loadChannelUsers();
+                this.app.ui.showMessage('User removed from channel');
+            }
+        } catch (error) {
+            this.app.handleError(error);
+        }
+    }
+
+    async handleInvitationResponse(messageId, accepted) {
+        try {
+            const response = await this.app.api.post('/channel_users.php', {
+                action: 'invite_response',
+                message_id: messageId,
+                accepted: accepted
+            });
+
+            if (response.success) {
+                this.app.ui.showSuccess(accepted ? 'Joined channel' : 'Invitation declined');
+                if (accepted) {
+                    await this.loadChannels();
+                }
+            }
+        } catch (error) {
+            this.app.handleError(error);
+        }
+    }
+
     async createChannel(data) {
         return await this.app.api.post('/channels.php', {
             action: 'create',
@@ -286,14 +275,10 @@ class ChannelManager {
         });
     }
 
-
-
     async loadChannels() {
-    
-           const response = await this.app.api.get('/channels.php');
-           const spinner = document.querySelector('.spinner');
+        const response = await this.app.api.get('/channels.php');
+        const spinner = document.querySelector('.spinner');
         try {
-         
             if (response.success) {
                 this.channels = response.channels || [];
                 console.log('Loaded channels:', this.channels);
@@ -302,7 +287,6 @@ class ChannelManager {
                     spinner.style.display = 'none';
                 }
             } else {
-                // Silently fail if not authenticated
                 if (response.error === "Not authenticated") {
                     this.channels = [];
                     return;
@@ -311,7 +295,6 @@ class ChannelManager {
                 this.app.ui.showError('Failed to load channels');
             }
         } catch (error) {
-            // Silently fail if not authenticated
             if (error.message === "Not authenticated") {
                 this.channels = [];
                 return;
@@ -335,13 +318,14 @@ class ChannelManager {
                 const creatorBadge = isCreator ? ' 👑' : '';
                 const adminBadge = isAdmin && !isCreator ? ' 🛡️' : '';
     
+                // Fixing template literal syntax
                 return `
                     <div class="channel-item" 
-                         data-channel-id="${ch.id}"
-                         data-is-private="${ch.is_private ? 'true' : 'false'}"
-                         data-is-creator="${isCreator ? 'true' : 'false'}"
-                         data-is-admin="${isAdmin ? 'true' : 'false'}"
-                         data-action="switch-channel">
+                        data-channel-id="${ch.id}"
+                        data-is-private="${ch.is_private ? 'true' : 'false'}"
+                        data-is-creator="${isCreator ? 'true' : 'false'}"
+                        data-is-admin="${isAdmin ? 'true' : 'false'}"
+                        data-action="switch-channel">
                         ${this.escapeHtml(ch.name)} ${lockIcon}${creatorBadge}${adminBadge}
                     </div>
                 `;
@@ -350,16 +334,13 @@ class ChannelManager {
             .join('');
     }
 
-
-
-
     clearChannels() {
         console.log("Clearing local channels display.");
         this.channels = [];
         this.currentChannel = null;
         this.renderChannelList();
-         
-     
+
+        const currentChannelTitle = document.getElementById('currentChannelTitle');
         if (currentChannelTitle) {
             currentChannelTitle.textContent = 'No channel selected';
             document.getElementById('channel-controls').hidden = true;
@@ -367,37 +348,36 @@ class ChannelManager {
             document.getElementById('channelSettingsBtn').disabled = true;
             document.getElementById('manageUsersBtn').disabled = true;
         }
-
-       
     }
+
+    
 
     async switchChannel(channelId) {
         console.log(`Attempting to switch to channel ${channelId}`);
-    
+
         try {
             if (!channelId || !this.app?.currentUser) {
                 console.error('Cannot switch channel: missing channel ID or user');
                 return;
             }
-    
+
             const channel = this.channels.find(ch => ch.id === parseInt(channelId));
             if (!channel) {
                 console.error('Channel not found');
                 return;
             }
-    
+
             const isAdmin = this.app.currentUser?.is_admin;
             const isCreator = channel.creator_id === this.app.currentUser?.id;
             const isMember = Boolean(channel.is_member);
-    
-            // If it's a private channel and user is not admin, creator, or member
+
             if (channel.is_private && !isAdmin && !isCreator && !isMember) {
                 try {
                     const knockResponse = await this.app.api.post('/channel_users.php', {
                         action: 'knock',
                         channel_id: channelId
                     });
-    
+
                     if (knockResponse.success) {
                         this.app.ui.showMessage('Request sent to channel creator');
                         return;
@@ -411,7 +391,7 @@ class ChannelManager {
                     }
                 }
             }
-    
+
             document.getElementById("messageInputArea").style.display = "block";
             this.app.modalManager.hideAll();
             this.currentChannel = channel.id;
@@ -419,36 +399,34 @@ class ChannelManager {
             document.getElementById('currentChannelTitle').textContent = `# ${this.escapeHtml(channel.name)}`;
             document.getElementById('channelInfo').hidden = false;
             document.getElementById('channel-controls').hidden = false;
-    
+
             const settingsButton = document.getElementById('channelSettingsBtn');
             const manageUsersButton = document.getElementById('manageUsersBtn');
             settingsButton.disabled = !(isAdmin || isCreator);
             manageUsersButton.disabled = !(isAdmin || isCreator);
-    
+
             if (isCreator || isAdmin) {
                 await this.checkPendingKnocks(channelId);
             }
-    
+
             await this.app.chat.loadMessages(channel.id);
         } catch (error) {
             console.error('Channel switch error:', error);
             this.app.handleError(error);
         }
     }
-    
-    // Add this method to check for pending knocks
+
     async checkPendingKnocks(channelId) {
         if (!channelId) return;
-    
+
         try {
             const params = new URLSearchParams({
                 type: 'knock',
                 channel_id: channelId
             });
-    
+
             const response = await this.app.api.get(`/messages.php?${params.toString()}`);
             if (response.success && response.messages?.length > 0) {
-                // Just display knock messages in chat
                 response.messages.forEach(message => {
                     this.app.chat.addMessageToDisplay(message);
                 });
@@ -457,6 +435,25 @@ class ChannelManager {
             console.error('Error checking knocks:', error);
         }
     }
+
+    async inviteUserToChannel(userId) {
+        try {
+            const response = await this.app.api.post('/channel_users.php', {
+                action: 'invite',
+                channel_id: this.currentChannel,
+                user_id: userId
+            });
+
+            if (response.success) {
+                this.app.ui.showSuccess('Invitation sent successfully');
+                await this.loadChannelUsers();
+            }
+        } catch (error) {
+            this.app.handleError(error);
+        }
+    }
+
+    
 
     escapeHtml(unsafe) {
         if (typeof unsafe !== "string") return "";
