@@ -43,6 +43,13 @@ class AuthState {
         this._state.isAuthenticated = isAuthenticated;
         this._state.user = user;
         this._state.lastActivity = isAuthenticated ? new Date().toISOString() : null;
+        
+        // Update UI elements when auth state changes
+        if (isAuthenticated) {
+            document.getElementById('currentChannelTitle').textContent = 'No channel selected';
+            document.getElementById('channelInfo').hidden = false;
+        }
+        
         this._notifyListeners();
     }
 

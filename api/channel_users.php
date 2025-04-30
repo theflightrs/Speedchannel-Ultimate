@@ -55,7 +55,9 @@ class ChannelUserHandler {
                                 $this->handleAssignUser();
                         }
                         break;
-                    
+                        case 'list':  // Add this case
+                            $this->handleListUsers();
+                            break;
                 case 'DELETE':
                     $this->handleRemoveUser();
                     break;
@@ -366,40 +368,59 @@ if (!$channel || ($channel['creator_id'] != $_SESSION['user_id'] && !$_SESSION['
         echo json_encode(['success' => true]);
     }
     
-    private function handleRemoveUser() {
-        $channelId = $_GET['channel_id'] ?? null;
-        $userId = $_GET['user_id'] ?? null;
-        
-        if (!$channelId || !$userId) {
-            throw new Exception('Missing required fields', 400);
+    private function handleListUsers() {
+        try {
+            $channelId = $_GET['channel_id'] ?? null;
+            if (!$channelId) {
+                throw new Exception('Channel ID required');
+            }
+    
+            $users = $this->db->fetchAll(
+                "SELECT u.id, u.username, cu.role,
+                        CASE WHEN u.id = ? THEN 1 ELSE 0 END as is_current_user
+                 FROM users u
+                 JOIN channel_users cu ON u.id = cu.user_id
+                 WHERE cu.channel_id = ?
+                 ORDER BY u.username",
+                [$_SESSION['user_id'], $channelId]
+            );
+    
+            echo json_encode(['success' => true, 'users' => $users]);
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
-        
-        // Verify permissions
+    }
+    
+    private function handleRemoveUser() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $channelId = $data['channel_id'] ?? null;
+        $userId = $data['user_id'] ?? null;
+    
+        if (!$channelId || !$userId) {
+            throw new Exception('Missing required parameters');
+        }
+    
+        // Check permissions
         $channel = $this->db->fetchOne(
-            "SELECT * FROM channels WHERE id = ?",
+            "SELECT creator_id FROM channels WHERE id = ?",
             [$channelId]
         );
-        
-        if (!$channel) {
-            throw new Exception('Channel not found', 404);
+    
+        if (!$channel || ($channel['creator_id'] !== $_SESSION['user_id'] && !$_SESSION['is_admin'])) {
+            throw new Exception('Permission denied');
         }
-        
-        if ($channel['creator_id'] != $_SESSION['user_id'] && !$_SESSION['is_admin']) {
-            throw new Exception('Permission denied', 403);
-        }
-        
+    
         // Cannot remove channel creator
-        if ($channel['creator_id'] == $userId) {
-            throw new Exception('Cannot remove channel creator', 400);
+        if ($userId === $channel['creator_id']) {
+            throw new Exception('Cannot remove channel creator');
         }
-        
-        // Remove user from channel
+    
         $this->db->delete(
-            "DELETE FROM channel_users 
-             WHERE channel_id = ? AND user_id = ?",
+            "DELETE FROM channel_users WHERE channel_id = ? AND user_id = ?",
             [$channelId, $userId]
         );
-        
+    
         echo json_encode(['success' => true]);
     }
 }

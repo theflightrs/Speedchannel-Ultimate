@@ -438,3 +438,483 @@ Stack trace:
     [input] => {"action":"knock_response","knock_id":337,"accepted":true}
 )
 
+[30-Apr-2025 00:24:19 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"43"}
+)
+
+[30-Apr-2025 00:24:48 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":339,"accepted":true}
+)
+
+[30-Apr-2025 00:26:20 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"43"}
+)
+
+[30-Apr-2025 00:26:25 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":342,"accepted":false}
+)
+
+[30-Apr-2025 00:41:53 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"44"}
+)
+
+[30-Apr-2025 00:42:23 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"45"}
+)
+
+[30-Apr-2025 00:42:38 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"45"}
+)
+
+[30-Apr-2025 00:42:45 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"44"}
+)
+
+[30-Apr-2025 00:42:52 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":344,"accepted":true}
+)
+
+[30-Apr-2025 00:42:52 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":344,"accepted":true}
+)
+
+[30-Apr-2025 00:46:01 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":345,"accepted":true}
+)
+
+[30-Apr-2025 00:48:56 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 00:50:24 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 00:50:59 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"46"}
+)
+
+[30-Apr-2025 00:51:01 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":346,"accepted":true}
+)
+
+[30-Apr-2025 00:51:24 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"46"}
+)
+
+[30-Apr-2025 00:51:25 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"46"}
+)
+
+[30-Apr-2025 00:51:28 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":347,"accepted":true}
+)
+
+[30-Apr-2025 00:51:29 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 00:51:32 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 00:53:07 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 00:53:24 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 00:54:33 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 00:55:41 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 00:55:54 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 00:59:39 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"44"}
+)
+
+[30-Apr-2025 00:59:52 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:00:01 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:00:13 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:01:20 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:01:26 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"44"}
+)
+
+[30-Apr-2025 01:02:53 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:09:40 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:10:18 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:10:49 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"47"}
+)
+
+[30-Apr-2025 01:10:51 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":352,"accepted":true}
+)
+
+[30-Apr-2025 01:10:53 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:10:56 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:11:48 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:11:50 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:12:05 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:12:31 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:14:14 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:15:21 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:20:03 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:25:55 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:28:50 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:31:54 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:39:18 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:39:30 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:39:43 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"47"}
+)
+
+[30-Apr-2025 01:39:44 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"44"}
+)
+
+[30-Apr-2025 01:39:50 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:43:17 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:43:36 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:43:46 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:46:12 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:47:57 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 01:50:54 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:00:10 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:00:16 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":353,"accepted":true}
+)
+
+[30-Apr-2025 02:00:17 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:01:50 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:02:28 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:02:32 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:03:28 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:04:33 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:05:55 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:06:58 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:07:04 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:16:59 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:19:49 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[30-Apr-2025 02:39:29 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"44"}
+)
+
+[30-Apr-2025 02:43:40 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"48"}
+)
+
+[30-Apr-2025 02:43:50 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":363,"accepted":false}
+)
+
+[30-Apr-2025 02:43:52 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"48"}
+)
+
+[30-Apr-2025 02:43:56 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":364,"accepted":true}
+)
+
+[30-Apr-2025 02:50:55 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"2"}
+)
+
+[30-Apr-2025 02:51:03 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":2,"accepted":true}
+)
+
+[30-Apr-2025 02:51:05 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+

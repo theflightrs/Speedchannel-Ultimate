@@ -412,17 +412,21 @@ error_log("[INDEX] Security instance created")
 <!-- Manage Users Modal -->
 <div id="manageUsersModal" class="modal" hidden>
     <div class="modal-content">
-        <h2>Manage Channel Users</h2>
-        <div class="search-section">
-            <input type="text" id="userSearchInput" placeholder="Search users to add...">
-            <div id="userSearchResults" class="search-results" hidden></div>
+        <div class="modal-header">
+
+        <div class="close" data-action="close-modal">&times;</div>
+        <h2>Channel Users</h2>
+           
         </div>
-        <div class="current-users-section">
-            <h3>Current Users</h3>
-            <div id="channelUsersList"></div>
-        </div>
-        <div class="modal-buttons">
-            <button type="button" data-action="close-modal">Close</button>
+        <div class="modal-body">
+            <div class="current-users-section">
+                <h3>Current Users</h3>
+                <div id="channelUsersList"></div>
+            </div>
+            <div class="available-users-section">
+                <h3>Available Users</h3>
+                <div id="availableUsersList"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -446,7 +450,7 @@ error_log("[INDEX] Security instance created")
 
 <script type="module" src="./js/app.js"></script>
 <script src="js/AuthState.js"></script>
-<!--- <div class="modal-overlay" style="display: none;"> --->
+
    
   
 </div>

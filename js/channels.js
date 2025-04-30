@@ -77,6 +77,12 @@ class ChannelManager {
                 }
             });
         }
+
+   
+        document.getElementById('manageUsersBtn').addEventListener('click', () => {
+            this.app.modalManager.openModal('manageUsersModal'); // Changed from show to openModal
+            this.loadChannelUsers();
+        });
     }
 
 
@@ -170,6 +176,70 @@ class ChannelManager {
                 this.app.chat.currentChannel = null;
                 document.getElementById('channelInfo').hidden = true;
                 document.getElementById('messageDisplay').innerHTML = '';
+            }
+        } catch (error) {
+            this.app.handleError(error);
+        }
+    }
+
+
+    async loadChannelUsers() {
+        try {
+            const channelId = this.currentChannel;
+            if (!channelId) {
+                throw new Error('No channel selected');
+            }
+    
+            const response = await this.app.api.get(`/channel_users.php?action=list&channel_id=${channelId}`);
+            console.log('Channel users response:', response);
+    
+            // Check for response.data since the arrays are nested inside data
+            if (response.success && response.data) {
+                const userList = document.getElementById('channelUsersList');
+                if (userList && response.data.users) {
+                    userList.innerHTML = response.data.users.map(user => `
+                        <div class="channel-user" data-user-id="${user.id}">
+                            <div class="user-info">
+                                <span>${user.username}</span>
+                                ${user.is_creator ? ' 👑' : ''}
+                            </div>
+                            ${!user.is_creator ? 
+                                `<button class="remove-user" data-action="remove-user" data-user-id="${user.id}">Remove</button>` : 
+                                ''}
+                        </div>
+                    `).join('');
+                }
+    
+                const availableList = document.getElementById('availableUsersList');
+                if (availableList && response.data.available_users) {
+                    availableList.innerHTML = response.data.available_users.map(user => `
+                        <div class="available-user" data-user-id="${user.id}">
+                            <div class="user-info">
+                                <span>${user.username}</span>
+                                ${user.is_admin ? ' 🛡️' : ''}
+                            </div>
+                            <button class="add-user" data-action="add-user" data-user-id="${user.id}">Add</button>
+                        </div>
+                    `).join('');
+                }
+            }
+        } catch (error) {
+            console.error('Error loading channel users:', error);
+            this.app.handleError(error);
+        }
+    }
+    
+    async removeUserFromChannel(userId) {
+        try {
+            const response = await this.app.api.post('/channel_users.php', {
+                action: 'remove',
+                channel_id: this.app.chat.currentChannel,
+                user_id: userId
+            });
+    
+            if (response.success) {
+                await this.loadChannelUsers(); // Refresh the list
+                this.app.ui.showMessage('User removed from channel');
             }
         } catch (error) {
             this.app.handleError(error);

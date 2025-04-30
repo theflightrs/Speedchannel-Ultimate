@@ -59,17 +59,23 @@ class App {
     async init() {
         const spinner = document.getElementById('spinner');
         if (spinner) spinner.style.display = 'block';
-
+    
         try {
             const userResponse = await this.api.get('/users.php', { action: 'current' });
             if (userResponse.success && userResponse.user) {
                 this.currentUser = userResponse.user;
                 AuthState.getInstance().setAuthState(true, userResponse.user);
-
+                
+                // Set channel title if no channel is selected
+                if (!this.channels.currentChannel) {
+                    document.getElementById('currentChannelTitle').textContent = 'No channel selected';
+                    document.getElementById('channelInfo').hidden = false;
+                }
+                
                 await Promise.all([
                     this.userManager.loadUsers(),
                     this.channels.loadChannels(),
-                    document.getElementById('userDisplay').textContent = userResponse.user.username
+                    document.getElementById('userDisplay').textContent = userResponse.user.username,
                 ]);
             }
         } catch (error) {

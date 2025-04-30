@@ -1,13 +1,17 @@
 .modal {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
-    background: #1c2331;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background: #182031;
+  padding: 20px;
+  border-radius: 8px;
+  max-height: 400px;
+  overflow-x: scroll;
+  min-width: 400px;
+  border: 1px solid black;
+  box-shadow: 1px 1px 20px 0px #050b19;
 }
 
 .modal-overlay {
@@ -23,6 +27,10 @@
 
 .modal-overlay.visible {
   display: block;
+}
+
+.modal-body {
+  padding: 15px;
 }
 
 #modalContainer {
@@ -62,4 +70,8 @@
   cursor: pointer;
 }
 
+
+.modal-body {
+  padding: 15px;
+}
 
