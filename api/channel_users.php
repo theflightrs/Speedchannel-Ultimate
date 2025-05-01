@@ -83,7 +83,15 @@ class ChannelUserHandler {
                         $this->handleAssignUser();
                 }
                 break;
-                
+                case 'knock':  // Add this case
+                    $this->handleKnock();
+                    break;
+                    case 'knock_response':  // Add this too
+                        $this->handleKnockResponse();
+                        break;
+                case 'retract_invite':
+                    $this->handleRetractInvite();
+                    break;
             default:
                 throw new Exception('Method not allowed', 405);
         }
@@ -318,17 +326,17 @@ class ChannelUserHandler {
         if ($canManage) {
             $availableUsers = $this->db->fetchAll(
                 "SELECT u.id, u.username, u.is_admin,
-                        CASE WHEN m.id IS NOT NULL THEN TRUE ELSE FALSE END as pending
-                 FROM users u
-                 LEFT JOIN messages m ON m.recipient_id = u.id 
-                    AND m.channel_id = ? 
-                    AND m.type = 'invitation' 
-                    AND m.is_system = 1
-                 WHERE u.id NOT IN (
-                     SELECT user_id FROM channel_users WHERE channel_id = ?
-                 ) AND u.is_active = TRUE
-                 ORDER BY u.username",
-                [$channelId, $channelId]
+                EXISTS(SELECT 1 FROM messages m 
+                       WHERE m.recipient_id = u.id 
+                       AND m.channel_id = ? 
+                       AND m.type = 'invitation' 
+                       AND m.is_system = 1) as pending
+         FROM users u
+         WHERE u.id NOT IN (
+             SELECT user_id FROM channel_users WHERE channel_id = ?
+         ) AND u.is_active = TRUE
+         ORDER BY u.username",
+        [$channelId, $channelId]
             );
         }
         
@@ -402,39 +410,34 @@ if (!$channel || ($channel['creator_id'] != $_SESSION['user_id'] && !$_SESSION['
             $userId = $data['user_id'] ?? null;
             
             if (!$channelId || !$userId) {
-                http_response_code(400);
-                throw new Exception('Missing required fields');
+                throw new Exception('Missing required fields', 400);
             }
     
-            // Use empty string encryption for required fields
-            $empty = $this->security->encrypt('', ENCRYPTION_KEY);
-            
+            // Check for existing invitation
+            $existing = $this->db->fetchOne(
+                "SELECT 1 FROM messages 
+                 WHERE channel_id = ? AND recipient_id = ? 
+                 AND type = 'invitation' AND is_system = 1",
+                [$channelId, $userId]
+            );
+    
+            if ($existing) {
+                throw new Exception('Invitation already exists', 400);
+            }
+    
+            // Insert invitation with no content (system message only)
             $this->db->insert(
                 "INSERT INTO messages (
-                    channel_id, 
-                    sender_id, 
-                    recipient_id, 
-                    type, 
-                    is_system, 
-                    encrypted_content,
-                    iv,
-                    tag,
-                    created_at
-                ) VALUES (?, ?, ?, 'invitation', 1, ?, ?, ?, UTC_TIMESTAMP())",
-                [
-                    $channelId,
-                    $_SESSION['user_id'],
-                    $userId,
-                    $empty['ciphertext'],
-                    $empty['iv'],
-                    $empty['tag']
-                ]
+                    channel_id, sender_id, recipient_id, type, is_system,
+                    created_at, encrypted_content, iv, tag
+                ) VALUES (?, ?, ?, 'invitation', 1, 
+                         UTC_TIMESTAMP(), '', '', '')",
+                [$channelId, $_SESSION['user_id'], $userId]
             );
             
-            http_response_code(200);
             echo json_encode(['success' => true]);
         } catch (Exception $e) {
-            http_response_code(500);
+            http_response_code($e->getCode() ?: 500);
             echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     }
@@ -528,26 +531,27 @@ if (!$channel || ($channel['creator_id'] != $_SESSION['user_id'] && !$_SESSION['
     }
 
     private function handleRetractInvite() {
-    $data = json_decode(file_get_contents('php://input'), true);
-    $channelId = $data['channel_id'] ?? null;
-    $userId = $data['user_id'] ?? null;
-    
-    if (!$channelId || !$userId) {
-        throw new Exception('Missing required fields', 400);
+        $data = json_decode(file_get_contents('php://input'), true);
+        $channelId = $data['channel_id'] ?? null;
+        $userId = $data['user_id'] ?? null;
+        
+        if (!$channelId || !$userId) {
+            throw new Exception('Missing required fields', 400);
+        }
+        
+        // Delete only invitation-type messages
+        $result = $this->db->delete(
+            "DELETE FROM messages 
+             WHERE channel_id = ? 
+             AND recipient_id = ? 
+             AND type = 'invitation' 
+             AND is_system = 1
+             AND sender_id = ?",
+            [$channelId, $userId, $_SESSION['user_id']]
+        );
+        
+        echo json_encode(['success' => true]);
     }
-    
-    // Delete pending invitation
-    $result = $this->db->delete(
-        "DELETE FROM messages 
-         WHERE channel_id = ? 
-         AND recipient_id = ? 
-         AND type = 'invitation' 
-         AND is_system = 1",
-        [$channelId, $userId]
-    );
-    
-    echo json_encode(['success' => true]);
-}
 
     private function handleListUsers() {
         try {

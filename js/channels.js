@@ -97,12 +97,18 @@ class ChannelManager {
             const button = e.target;
             const userId = button.dataset.userId;
         
+            if (!action || !userId) return;
+        
             if (action === 'add-user') {
                 await this.inviteUserToChannel(userId);
-                this.updateButtonState(button, true);
+                button.textContent = 'Pending';
+                button.dataset.action = 'retract-invite';
+                button.classList.add('pending-invite');  // Just add pending-invite, keep add-user
             } else if (action === 'retract-invite') {
                 await this.retractInvitation(userId);
-                this.updateButtonState(button, false);
+                button.textContent = 'Add';
+                button.dataset.action = 'add-user';
+                button.classList.remove('pending-invite');  // Just remove pending-invite
             }
         });
     } // End of initializeEventListeners
@@ -202,31 +208,27 @@ class ChannelManager {
 
     async loadChannelUsers() {
         try {
-            const channelId = this.currentChannel;
-            if (!channelId) return;
-    
-            const response = await this.app.api.get(`/channel_users.php?action=list&channel_id=${channelId}`);
+            const response = await this.app.api.get(`/channel_users.php?action=list&channel_id=${this.currentChannel}`);
             
-            if (response.success && response.data) {
+            if (response.success && response.data?.available_users) {
                 const availableList = document.getElementById('availableUsersList');
-                if (availableList && response.data.available_users) {
+                if (availableList) {
                     availableList.innerHTML = response.data.available_users.map(user => `
-                        <div class="available-user" data-user-id="${user.id}">
-                            <div class="user-info">
-                                <span>${user.username}</span>
-                                ${user.is_admin ? ' 🛡️' : ''}
-                            </div>
-                            <button class="add-user ${user.pending ? 'pending' : ''}" 
-                                    data-action="${user.pending ? 'retract-invite' : 'add-user'}" 
-                                    data-user-id="${user.id}">
-                                ${user.pending ? 'Pending' : 'Add'}
-                            </button>
+                    <div class="available-user" data-user-id="${user.id}">
+                        <div class="user-info">
+                            <span>${user.username}</span>
+                            ${user.is_admin ? ' 🛡️' : ''}
                         </div>
-                    `).join('');
+                        <button class="add-user ${user.pending ? 'pending-invite' : ''}" 
+                                data-action="${user.pending ? 'retract-invite' : 'add-user'}" 
+                                data-user-id="${user.id}">
+                            ${user.pending ? 'Pending' : 'Add'}
+                        </button>
+                    </div>
+                `).join('');
                 }
             }
         } catch (error) {
-            console.error('Error loading channel users:', error);
             this.app.handleError(error);
         }
     }
@@ -377,23 +379,16 @@ class ChannelManager {
             const isMember = Boolean(channel.is_member);
 
             if (channel.is_private && !isAdmin && !isCreator && !isMember) {
-                try {
-                    const knockResponse = await this.app.api.post('/channel_users.php', {
-                        action: 'knock',
-                        channel_id: channelId
-                    });
-
-                    if (knockResponse.success) {
-                        this.app.ui.showMessage('Request sent to channel creator');
-                        return;
-                    }
-                } catch (error) {
-                    if (error.message === 'Already a member') {
-                        // Continue with channel switch
-                    } else {
-                        this.app.handleError(error);
-                        return;
-                    }
+                const knockResponse = await this.app.api.post('/channel_users.php', {
+                    action: 'knock',
+                    channel_id: channelId,
+                    type: 'knock',
+                    user_id: this.app.currentUser.id  // Add user_id
+                });
+        
+                if (knockResponse.success) {
+                    this.app.ui.showMessage('Request sent to channel creator');
+                    return;
                 }
             }
 
@@ -471,17 +466,19 @@ class ChannelManager {
 
     async inviteUserToChannel(userId) {
         try {
-            const response = await this.app.api.post('/channel_users.php', {
+            await this.app.api.post('/channel_users.php', {
                 action: 'invite',
                 channel_id: this.currentChannel,
                 user_id: userId
             });
     
-            if (response.success) {
-                this.app.ui.showSuccess('Invitation sent successfully');
-                // Update button state immediately
-                const button = document.querySelector(`button[data-user-id="${userId}"]`);
-                this.updateButtonState(button, true);
+            // Update button immediately
+            const button = document.querySelector(`button[data-user-id="${userId}"]`);
+            if (button) {
+                button.textContent = 'Pending';
+                button.dataset.action = 'retract-invite';
+                button.classList.add('pending');
+                button.disabled = false;
             }
         } catch (error) {
             this.app.handleError(error);
@@ -489,10 +486,17 @@ class ChannelManager {
     }
 
     async loadPendingInvitations() {
+        
         try {
+              if (this.app.currentUser) { // Only poll if user is authenticated
             const response = await this.app.api.get('/channel_users.php?action=list_invites');
-            if (response.success && response.invitations) {
-                this.renderInvitationsList(response.invitations);
+            if (response.success && response.invitations) { 
+                
+              
+                    this.renderInvitationsList(response.invitations);
+                }
+
+                
             }
         } catch (error) {
             console.error('Error loading invitations:', error);
@@ -500,24 +504,26 @@ class ChannelManager {
     }
 
 
-   async retractInvitation(userId) {
-    try {
-        const response = await this.app.api.post('/channel_users.php', {
-            action: 'retract_invite',
-            channel_id: this.currentChannel,
-            user_id: userId
-        });
-
-        if (response.success) {
-            this.app.ui.showSuccess('Invitation retracted');
-            // Update button state immediately
+    async retractInvitation(userId) {
+        try {
+            await this.app.api.post('/channel_users.php', {
+                action: 'retract_invite',
+                channel_id: this.currentChannel,
+                user_id: userId
+            });
+    
+            // Update button immediately, don't wait for refresh
             const button = document.querySelector(`button[data-user-id="${userId}"]`);
-            this.updateButtonState(button, false);
+            if (button) {
+                button.textContent = 'Add';
+                button.dataset.action = 'add-user';
+                button.classList.remove('pending');
+                button.disabled = false;
+            }
+        } catch (error) {
+            this.app.handleError(error);
         }
-    } catch (error) {
-        this.app.handleError(error);
     }
-}
 
 
 renderInvitationsList(invitations) {

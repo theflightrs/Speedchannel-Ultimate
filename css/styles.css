@@ -391,6 +391,11 @@ display: flex;
   cursor: pointer;
 }
 
+.pending-invite {
+  background-color: #ffd700 !important;  /* yellow */
+  color: black !important;
+}
+
 .add-user {
   background-color: #44b944;
   color: white;

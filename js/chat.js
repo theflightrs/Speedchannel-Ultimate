@@ -106,8 +106,14 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
 
     
     addMessageToDisplay(message) {
+        // Skip system messages that shouldn't be displayed
+        if (message.type === 'invitation' || (message.is_system && !message.encrypted_content)) {
+            return;
+        }
         const messageDisplay = document.getElementById('messageDisplay');
         if (!messageDisplay) return;
+
+        
     
         const messageDiv = document.createElement('div');
         messageDiv.className = message.is_system ? 'message system-message' : 'message';
@@ -225,6 +231,17 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
         }
     }
 
+/*
+            try {
+                await fetch('./api/messages.php?action=deleteOld', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({}) // No need to send 'age' if default is set in PHP
+                });
+            } catch (error) {
+                console.error('Error during auto-delete:', error);
+            }
+*/
 
 
 

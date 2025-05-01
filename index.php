@@ -51,10 +51,6 @@ error_log("[INDEX] Security instance created")
 </head>
 <body>
 
-<!---- <div id="loadingOverlay" class="loading-overlay" hidden>
-
-</div> --->
-
     <div id="app">
 
 
