@@ -8,9 +8,9 @@ class Chat {
         this.lastMessageTimestamp = 0;
         this.pollingInterval = null;
         this.pollTimeoutId = null
-        this.FAST_POLL_RATE = 100;    // 100ms during active chat
-        this.SLOW_POLL_RATE = 5000;   // 5s during inactive chat
-        this.ACTIVE_DURATION = 60000;  // 60s of fast polling after activity
+        this.FAST_POLL_RATE = 800;    // 200ms during active chat
+        this.SLOW_POLL_RATE = 8000;   // 8s during inactive chat
+        this.ACTIVE_DURATION = 120000;  // 2min of fast polling after activity
         this.lastActivityTime = 0;
 		this.addMessageToDisplay = this.addMessageToDisplay.bind(this);
     }
@@ -213,9 +213,13 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
         if (this.pollingInterval) this.stopPolling();
         
         const poll = async () => {
-            await this.checkNewMessages(channelId);
+            // Don't poll if tab is hidden
+            if (document.hidden) {
+                this.pollingInterval = setTimeout(poll, this.SLOW_POLL_RATE);
+                return;
+            }
             
-            // Calculate polling rate based on activity
+            await this.checkNewMessages(channelId);
             const timeSinceActivity = Date.now() - this.lastActivityTime;
             const nextPollRate = timeSinceActivity < this.ACTIVE_DURATION 
                 ? this.FAST_POLL_RATE 
@@ -223,7 +227,7 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
             
             this.pollingInterval = setTimeout(poll, nextPollRate);
         };
-
+    
         poll();
     }
 

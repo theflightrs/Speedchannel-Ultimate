@@ -56,6 +56,9 @@ function checkChannelAccess($channelId) {
  * Handle GET requests to retrieve messages for a specific channel.
  */
 function getMessages() {
+     header('Cache-Control: no-cache');
+    
+ 
     global $db, $security;
 
     $channelId = $_GET['channel_id'] ?? null;
@@ -63,6 +66,8 @@ function getMessages() {
     $includeFiles = $_GET['include_files'] ?? false;
     $type = $_GET['type'] ?? null;
 
+
+    
     if (!$channelId) {
         throw new Exception('Channel ID is required.');
     }
