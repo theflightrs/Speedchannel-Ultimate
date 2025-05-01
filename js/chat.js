@@ -87,23 +87,7 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
     }
 
    
-
-
-/*
-            try {
-                await fetch('./api/messages.php?action=deleteOld', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({}) // No need to send 'age' if default is set in PHP
-                });
-            } catch (error) {
-                console.error('Error during auto-delete:', error);
-            }
-*/
-
-
     
-
 
 
     async deleteMessage(messageId, action = 'manual-delete') {

@@ -27,52 +27,74 @@ class ChannelUserHandler {
         $this->security = Security::getInstance();
     }
     
-    public function handleRequest() {
-        header('Content-Type: application/json');
-        
-        try {
-            if (!$this->security->isAuthenticated()) {
-                throw new Exception('Unauthorized access', 401);
-            }
-            
-            $data = json_decode(file_get_contents('php://input'), true);
-            $action = $data['action'] ?? '';
-            
-            switch ($_SERVER['REQUEST_METHOD']) {
-                case 'GET':
-                    $this->handleGetChannelUsers();
-                    break;
-                    
-                    case 'POST':
-                        switch ($action) {
-                            case 'knock':
-                                $this->handleKnock();
-                                break;
-                            case 'knock_response':
-                                $this->handleKnockResponse();
-                                break;
-                            default:
-                                $this->handleAssignUser();
-                        }
-                        break;
-                        case 'list':  // Add this case
-                            $this->handleListUsers();
-                            break;
-                case 'DELETE':
-                    $this->handleRemoveUser();
-                    break;
-                    
-                default:
-                    throw new Exception('Method not allowed', 405);
-            }
-        } catch (Exception $e) {
-            http_response_code($e->getCode() ?: 500);
-            echo json_encode([
-                'success' => false,
-                'error' => $e->getMessage()
-            ]);
+  // Fix the switch statement structure in handleRequest()
+  public function handleRequest() {
+    header('Content-Type: application/json');
+    
+    try {
+        if (!$this->security->isAuthenticated()) {
+            http_response_code(401);
+            throw new Exception('Unauthorized access');
         }
+        
+        switch ($_SERVER['REQUEST_METHOD']) {
+            case 'GET':
+                $action = $_GET['action'] ?? 'list';
+                
+                switch ($action) {
+                    case 'list':
+                        $this->handleGetChannelUsers();
+                        break;
+                        case 'list_invites':
+                            $invites = $this->db->fetchAll(
+                                "SELECT m.id, m.channel_id, c.name as channel_name 
+                                 FROM messages m 
+                                 JOIN channels c ON m.channel_id = c.id 
+                                 WHERE m.recipient_id = ? 
+                                 AND m.type = 'invitation' 
+                                 AND m.is_system = 1",
+                                [$_SESSION['user_id']]
+                            );
+                            echo json_encode([
+                                'success' => true,
+                                'invitations' => $invites
+                            ]);
+                            break;
+                    default:
+                        throw new Exception('Invalid action');
+                }
+                break;
+
+            case 'POST':
+                $data = json_decode(file_get_contents('php://input'), true);
+                $action = $data['action'] ?? '';
+                
+                switch ($action) {
+                    case 'invite':
+                        $this->handleInvite();
+                        break;
+                    case 'retract_invite':
+                        $this->handleRetractInvite();
+                        break;
+                    case 'invitation_response':
+                        $this->handleInvitationResponse();
+                        break;
+                    default:
+                        $this->handleAssignUser();
+                }
+                break;
+                
+            default:
+                throw new Exception('Method not allowed', 405);
+        }
+    } catch (Exception $e) {
+        http_response_code($e->getCode() ?: 500);
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
     }
+}
 
 
     private function canSendMessage($channelId, $userId) {
@@ -295,13 +317,18 @@ class ChannelUserHandler {
         $availableUsers = [];
         if ($canManage) {
             $availableUsers = $this->db->fetchAll(
-                "SELECT id, username, is_admin
-                 FROM users
-                 WHERE id NOT IN (
+                "SELECT u.id, u.username, u.is_admin,
+                        CASE WHEN m.id IS NOT NULL THEN TRUE ELSE FALSE END as pending
+                 FROM users u
+                 LEFT JOIN messages m ON m.recipient_id = u.id 
+                    AND m.channel_id = ? 
+                    AND m.type = 'invitation' 
+                    AND m.is_system = 1
+                 WHERE u.id NOT IN (
                      SELECT user_id FROM channel_users WHERE channel_id = ?
-                 ) AND is_active = TRUE
-                 ORDER BY username",
-                [$channelId]
+                 ) AND u.is_active = TRUE
+                 ORDER BY u.username",
+                [$channelId, $channelId]
             );
         }
         
@@ -367,7 +394,161 @@ if (!$channel || ($channel['creator_id'] != $_SESSION['user_id'] && !$_SESSION['
         
         echo json_encode(['success' => true]);
     }
+
+    private function handleInvite() {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $channelId = $data['channel_id'] ?? null;
+            $userId = $data['user_id'] ?? null;
+            
+            if (!$channelId || !$userId) {
+                http_response_code(400);
+                throw new Exception('Missing required fields');
+            }
     
+            // Use empty string encryption for required fields
+            $empty = $this->security->encrypt('', ENCRYPTION_KEY);
+            
+            $this->db->insert(
+                "INSERT INTO messages (
+                    channel_id, 
+                    sender_id, 
+                    recipient_id, 
+                    type, 
+                    is_system, 
+                    encrypted_content,
+                    iv,
+                    tag,
+                    created_at
+                ) VALUES (?, ?, ?, 'invitation', 1, ?, ?, ?, UTC_TIMESTAMP())",
+                [
+                    $channelId,
+                    $_SESSION['user_id'],
+                    $userId,
+                    $empty['ciphertext'],
+                    $empty['iv'],
+                    $empty['tag']
+                ]
+            );
+            
+            http_response_code(200);
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    private function handleRespondInvite() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $channelId = $data['channel_id'] ?? null;
+        $accepted = $data['accepted'] ?? false;
+        
+        if (!$channelId) {
+            throw new Exception('Missing required fields', 400);
+        }
+        
+        if ($accepted) {
+            // Add user to channel
+            $this->db->insert(
+                "INSERT INTO channel_users (channel_id, user_id, role, joined_at)
+                VALUES (?, ?, 'member', UTC_TIMESTAMP())",
+                [$channelId, $_SESSION['user_id']]
+            );
+        }
+        
+        // Update invitation status
+        $this->db->update(
+            "UPDATE channel_invitations 
+             SET status = ?, responded_at = UTC_TIMESTAMP()
+             WHERE channel_id = ? AND user_id = ? AND status = 'pending'",
+            [$accepted ? 'accepted' : 'declined', $channelId, $_SESSION['user_id']]
+        );
+        
+        echo json_encode(['success' => true]);
+    }
+
+
+    private function handleInvitationResponse() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $messageId = $data['message_id'] ?? null;
+        $accepted = $data['accepted'] ?? false;
+        
+        if (!$messageId) {
+            throw new Exception('Message ID required', 400);
+        }
+        
+        // Get the invitation message
+        $message = $this->db->fetchOne(
+            "SELECT m.*, c.id as channel_id, c.creator_id 
+             FROM messages m
+             JOIN channels c ON m.channel_id = c.id
+             WHERE m.id = ? AND m.type = 'invitation' AND m.recipient_id = ?",
+            [$messageId, $_SESSION['user_id']]
+        );
+        
+        if (!$message) {
+            throw new Exception('Invitation not found', 404);
+        }
+        
+        // Delete the invitation message
+        $this->db->delete(
+            "DELETE FROM messages WHERE id = ?",
+            [$messageId]
+        );
+        
+        if ($accepted) {
+            // Add user to channel
+            $this->db->insert(
+                "INSERT INTO channel_users (channel_id, user_id, role, joined_at)
+                 VALUES (?, ?, 'member', UTC_TIMESTAMP())",
+                [$message['channel_id'], $_SESSION['user_id']]
+            );
+        }
+        
+        echo json_encode(['success' => true]);
+    }
+
+    private function handlePendingInvites() {
+        $userId = $_SESSION['user_id'];
+        
+        $invitations = $this->db->fetchAll(
+            "SELECT ci.channel_id, c.name as channel_name
+             FROM channel_invitations ci
+             JOIN channels c ON ci.channel_id = c.id
+             WHERE ci.user_id = ? AND ci.status = 'pending'
+             ORDER BY ci.created_at DESC",
+            [$userId]
+        );
+        
+        echo json_encode([
+            'success' => true,
+            'invitations' => $invitations
+        ]);
+    }
+
+    private function handleRetractInvite() {
+    $data = json_decode(file_get_contents('php://input'), true);
+    $channelId = $data['channel_id'] ?? null;
+    $userId = $data['user_id'] ?? null;
+    
+    if (!$channelId || !$userId) {
+        throw new Exception('Missing required fields', 400);
+    }
+    
+    // Delete pending invitation
+    $result = $this->db->delete(
+        "DELETE FROM messages 
+         WHERE channel_id = ? 
+         AND recipient_id = ? 
+         AND type = 'invitation' 
+         AND is_system = 1",
+        [$channelId, $userId]
+    );
+    
+    echo json_encode(['success' => true]);
+}
+
     private function handleListUsers() {
         try {
             $channelId = $_GET['channel_id'] ?? null;

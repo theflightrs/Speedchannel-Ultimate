@@ -69,12 +69,13 @@ error_log("[INDEX] Security instance created")
                     <span id="userDisplay"></span>
                     <button id="logoutBtn" data-action="logout">Logout</button>
                 </div>
-
+                <button id="createChanButton" data-action="create-channel">Create Channel</button>
                 <!-- Channels Section -->
                 <div id="channelSection">
+             
+
                     <div class="section-header">
-                        <h3>Channels</h3>
-                      <button data-action="create-channel">Create Channel</button>
+                        <h3>Channels</h3>           
                     </div>
                     <div id="channelList"></div>
                 </div>
@@ -87,12 +88,15 @@ error_log("[INDEX] Security instance created")
                      </ul>
                 </div>
               
-
+      <div id="invitationsList">
+    <h3>Invitations</h3>
+    <div id="invitationList"></div>
+</div>
 
 
                 <!-- Admin Section -->
-                <div id="adminSection">
-                    <h3>Admin</h3>
+                <div id="adminSection" hidden>
+                  <!--  <h3> Admin </h3> -->
                    <button id="adminBtn" data-action="toggle-admin-panel">Admin Panel</button>
           
           <div id="adminPanel" class="admin-panel" hidden>

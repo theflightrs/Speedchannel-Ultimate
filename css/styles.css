@@ -18,6 +18,15 @@ width: 100%;
 
 }
 
+h3 {
+
+
+
+font-family: monospace;
+color: #8cc4ff;
+text-shadow: 0 0 10px #222f57, 0 0 20px #000277, 0 0 30px #415c86, 0 0 40px #0065e6, 0 0 50px #00a5e6, 0 0 60px #002866, 0 0 70px #002b59;
+}
+
 body.loading #loginForm {
   display: none; /* Ensure login form is hidden during loading */
 }
@@ -259,6 +268,7 @@ display: flex;
     margin: 0 0 15px 0;
     max-height: 200px;
     overflow-y: auto;
+    
 }
 
 #userList .user-item {
@@ -295,8 +305,10 @@ display: flex;
   align-items: center;
 }
 
-#channelSection, #userSection, #adminSection {
-  margin-bottom: 20px;
+#channelSection, #userSection, #adminSection, #invitationsList {
+  margin-bottom: 40px;
+  margin-top: 40px;
+  border: 0px solid #22488f;
 }
 
 #channelList, #userList {
@@ -307,6 +319,7 @@ display: flex;
     background: #00000066;
 }
 
+/*
 .invitation-item {
   background: #17212d;
   padding: 8px;
@@ -334,6 +347,63 @@ display: flex;
 .invitation-item .decline {
   background: #f44336;
   color: white;
+}
+*/ 
+
+
+.invitation-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background: #00000066;
+}
+
+.invitation-item {
+  padding: 8px;
+  margin: 4px 0;
+  background: #00000066;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.invitation-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.accept-invite {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.decline-invite {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.add-user {
+  background-color: #44b944;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.add-user.pending {
+  background-color: #ffd700 !important;
+  color: #000 !important;
+}
+
+.add-user.pending:hover {
+  background-color: #ffed4a !important;
 }
 
 .channel, .user {
@@ -431,6 +501,18 @@ button {
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
+}
+
+#createChanButton {
+
+  padding: 10px 15px;
+  background-color: #214b7b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
 }
 
 button:hover {

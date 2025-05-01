@@ -154,7 +154,10 @@ class App {
                         this.modalManager.hideAll();
                         this.modalManager.openModal('manageUsersModal');
                         break;
-
+                        case 'add-user':
+                            case 'retract-invite':
+                                // These are handled by channels.js
+                                break;
                     case 'close-modal':
                         this.modalManager.hideAll();
                         break;

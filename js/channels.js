@@ -6,6 +6,11 @@ class ChannelManager {
         this.channels = [];
         this.currentChannel = null;
         this.initializeEventListeners();
+        this.initializeInvitationEvents(); // Add this line
+
+        if (autoload) {
+            setInterval(() => this.loadPendingInvitations(), 5000); // Changed from 3000 to 5000
+        }
     }
 
     checkChannelAccess(channel, user) {
@@ -84,17 +89,40 @@ class ChannelManager {
             });
         }
 
+       
+
+       
         document.addEventListener('click', async (e) => {
             const action = e.target.dataset.action;
+            const button = e.target;
+            const userId = button.dataset.userId;
+        
             if (action === 'add-user') {
-                const userId = e.target.dataset.userId;
                 await this.inviteUserToChannel(userId);
+                this.updateButtonState(button, true);
+            } else if (action === 'retract-invite') {
+                await this.retractInvitation(userId);
+                this.updateButtonState(button, false);
             }
         });
+    } // End of initializeEventListeners
+
+    updateButtonState(button, isPending) {
+        if (!button) return;
+        button.textContent = isPending ? 'Pending' : 'Add';
+        button.classList.toggle('pending', isPending);
+        button.dataset.action = isPending ? 'retract-invite' : 'add-user';
+        button.disabled = isPending;
     }
-
-
-
+    
+    updateAllButtonStates(invitations) {
+        const pendingUsers = new Set(invitations.map(inv => inv.recipient_id));
+        document.querySelectorAll('.add-user').forEach(button => {
+            const userId = button.dataset.userId;
+            const isPending = pendingUsers.has(userId);
+            this.updateButtonState(button, isPending);
+        });
+    }
 
     async handleChannelCreation() {
         const channelName = document.getElementById('channelName').value.trim();
@@ -175,29 +203,11 @@ class ChannelManager {
     async loadChannelUsers() {
         try {
             const channelId = this.currentChannel;
-            if (!channelId) {
-                throw new Error('No channel selected');
-            }
-
+            if (!channelId) return;
+    
             const response = await this.app.api.get(`/channel_users.php?action=list&channel_id=${channelId}`);
-            console.log('Channel users response:', response);
-
+            
             if (response.success && response.data) {
-                const userList = document.getElementById('channelUsersList');
-                if (userList && response.data.users) {
-                    userList.innerHTML = response.data.users.map(user => `
-                        <div class="channel-user" data-user-id="${user.id}">
-                            <div class="user-info">
-                                <span>${user.username}</span>
-                                ${user.is_creator ? ' 👑' : ''}
-                            </div>
-                            ${!user.is_creator ? 
-                                `<button class="remove-user" data-action="remove-user" data-user-id="${user.id}">Remove</button>` : 
-                                ''}
-                        </div>
-                    `).join('');
-                }
-
                 const availableList = document.getElementById('availableUsersList');
                 if (availableList && response.data.available_users) {
                     availableList.innerHTML = response.data.available_users.map(user => `
@@ -206,7 +216,11 @@ class ChannelManager {
                                 <span>${user.username}</span>
                                 ${user.is_admin ? ' 🛡️' : ''}
                             </div>
-                            <button class="add-user" data-action="add-user" data-user-id="${user.id}">Add</button>
+                            <button class="add-user ${user.pending ? 'pending' : ''}" 
+                                    data-action="${user.pending ? 'retract-invite' : 'add-user'}" 
+                                    data-user-id="${user.id}">
+                                ${user.pending ? 'Pending' : 'Add'}
+                            </button>
                         </div>
                     `).join('');
                 }
@@ -237,15 +251,16 @@ class ChannelManager {
     async handleInvitationResponse(messageId, accepted) {
         try {
             const response = await this.app.api.post('/channel_users.php', {
-                action: 'invite_response',
+                action: 'invitation_response',
                 message_id: messageId,
                 accepted: accepted
             });
-
+    
             if (response.success) {
                 this.app.ui.showSuccess(accepted ? 'Joined channel' : 'Invitation declined');
                 if (accepted) {
                     await this.loadChannels();
+                    await this.loadChannelUsers(); // Refresh users list
                 }
             }
         } catch (error) {
@@ -426,6 +441,34 @@ class ChannelManager {
         }
     }
 
+    initializeInvitationEvents() {
+        // Add event listener to the document for invitation responses
+        document.addEventListener('click', async (e) => {
+            const button = e.target;
+            if (!button.matches('[data-action="accept-invitation"], [data-action="decline-invitation"]')) {
+                return;
+            }
+    
+            const messageId = button.dataset.messageId;
+            if (!messageId) return;
+    
+            const accepted = button.dataset.action === 'accept-invitation';
+            await this.handleInvitationResponse(messageId, accepted);
+            
+            // Remove the invitation item from the list
+            const invitationItem = button.closest('.invitation-item');
+            if (invitationItem) {
+                invitationItem.remove();
+            }
+    
+            // Reload channels if accepted
+            if (accepted) {
+                await this.loadChannels();
+            }
+        });
+    }
+
+
     async inviteUserToChannel(userId) {
         try {
             const response = await this.app.api.post('/channel_users.php', {
@@ -433,17 +476,67 @@ class ChannelManager {
                 channel_id: this.currentChannel,
                 user_id: userId
             });
-
+    
             if (response.success) {
                 this.app.ui.showSuccess('Invitation sent successfully');
-                await this.loadChannelUsers();
+                // Update button state immediately
+                const button = document.querySelector(`button[data-user-id="${userId}"]`);
+                this.updateButtonState(button, true);
             }
         } catch (error) {
             this.app.handleError(error);
         }
     }
 
+    async loadPendingInvitations() {
+        try {
+            const response = await this.app.api.get('/channel_users.php?action=list_invites');
+            if (response.success && response.invitations) {
+                this.renderInvitationsList(response.invitations);
+            }
+        } catch (error) {
+            console.error('Error loading invitations:', error);
+        }
+    }
+
+
+   async retractInvitation(userId) {
+    try {
+        const response = await this.app.api.post('/channel_users.php', {
+            action: 'retract_invite',
+            channel_id: this.currentChannel,
+            user_id: userId
+        });
+
+        if (response.success) {
+            this.app.ui.showSuccess('Invitation retracted');
+            // Update button state immediately
+            const button = document.querySelector(`button[data-user-id="${userId}"]`);
+            this.updateButtonState(button, false);
+        }
+    } catch (error) {
+        this.app.handleError(error);
+    }
+}
+
+
+renderInvitationsList(invitations) {
+    const list = document.getElementById('invitationList');
+    if (!list) return;
     
+    list.innerHTML = invitations.map(inv => `
+        <div class="channel-item invitation-item" data-message-id="${inv.id}">
+            <span class="invitation-item">${this.escapeHtml(inv.channel_name)}</span>
+            <div class="invitation-buttons">
+                <button class="accept-invite" data-action="accept-invitation" data-message-id="${inv.id}">Accept</button>
+                <button class="decline-invite" data-action="decline-invitation" data-message-id="${inv.id}">Decline</button>
+            </div>
+        </div>
+    `).join('') || '<p class="no-invites">No pending invitations</p>';
+}
+
+
+
 
     escapeHtml(unsafe) {
         if (typeof unsafe !== "string") return "";

@@ -67,6 +67,9 @@ function initializeDatabase() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 edited_at TIMESTAMP NULL,
                 handled TINYINT(1) NOT NULL DEFAULT 0,
+                type ENUM('message', 'knock', 'invitation') DEFAULT 'message',
+                recipient_id INT NULL,
+                FOREIGN KEY (recipient_id) REFERENCES users(id),
                 FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
                 FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
             )",
