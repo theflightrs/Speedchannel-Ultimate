@@ -9,13 +9,6 @@ require_once('../db_setup.php');
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/knock_error.log');
-
-// Inside handleRequest(), before the switch:
-error_log("Received request: " . print_r([
-    'method' => $_SERVER['REQUEST_METHOD'],
-    'input' => file_get_contents('php://input')
-], true));
 
 
 class ChannelUserHandler {
