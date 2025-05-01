@@ -219,8 +219,8 @@ error_log("[INDEX] Security instance created")
 
 
                 <template id="knockMessageTemplate">
-    <div class="knock-request" data-message-id="${message.id}">
-        <span class="user"></span> is requesting to join this channel
+    <div class="knock-request">
+        <span class="user"></span> is requesting to join
         <button class="accept">Accept</button>
         <button class="decline">Decline</button>
     </div>

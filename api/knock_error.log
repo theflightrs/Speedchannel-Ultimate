@@ -1188,3 +1188,33 @@ Stack trace:
     [input] => {"action":"knock","channel_id":"15"}
 )
 
+[01-May-2025 03:25:51 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"16"}
+)
+
+[01-May-2025 03:26:25 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"17"}
+)
+
+[01-May-2025 03:38:36 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":92,"accepted":true}
+)
+
+[01-May-2025 03:40:51 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[01-May-2025 03:41:18 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"18"}
+)
+

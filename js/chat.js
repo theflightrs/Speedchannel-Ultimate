@@ -121,51 +121,17 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
         const messageDiv = document.createElement('div');
         messageDiv.className = message.is_system ? 'message system-message' : 'message';
     
-        // Handle system messages
+        // Handle knock requests (no JSON parsing needed)
+        if (message.is_system && message.content.includes('is requesting to join')) {
+            this.handleKnockMessage(message, messageDiv, messageDisplay);
+            return;
+        }
+    
+        // Handle regular system messages
         if (message.is_system) {
-            try {
-                const content = JSON.parse(message.content);
-                
-                if (content.type === 'user_joined') {
-                    messageDiv.innerHTML = `
-                        <div class="system-notification">
-                            <span class="username">${this.escapeHtml(content.user)}</span> joined the channel
-                        </div>`;
-                    messageDisplay.appendChild(messageDiv);
-                    return;
-                }
-    
-                // Handle knock messages
-                if (message.content.includes('is requesting to join')) {
-                    const channel = this.app.channels.channels.find(ch => ch.id == this.currentChannel);
-                    const isCreator = channel?.creator_id === this.app.currentUser?.id;
-                    const isAdmin = this.app.currentUser?.is_admin;
-    
-                    if (isCreator || isAdmin) {
-                        const knockTemplate = document.getElementById('knockMessageTemplate');
-                        if (knockTemplate) {
-                            const knockMessage = knockTemplate.content.cloneNode(true);
-                            knockMessage.querySelector('.user').textContent = message.username || message.sender_username;
-                            
-                            const acceptBtn = knockMessage.querySelector('.accept');
-                            const declineBtn = knockMessage.querySelector('.decline');
-                            
-                            acceptBtn.onclick = () => this.handleKnockResponse(message.id, true);
-                            declineBtn.onclick = () => this.handleKnockResponse(message.id, false);
-                            
-                            messageDiv.appendChild(knockMessage);
-                            messageDisplay.appendChild(messageDiv);
-                            return;
-                        }
-                    } else if (message.sender_id === this.app.currentUser?.id) {
-                        messageDiv.innerHTML = `<div class="knock-pending">Your join request is pending...</div>`;
-                        messageDisplay.appendChild(messageDiv);
-                        return;
-                    }
-                }
-            } catch (e) {
-                console.error('Error processing system message:', e);
-            }
+            messageDiv.innerHTML = `<div class="system-notification">${this.escapeHtml(message.content)}</div>`;
+            messageDisplay.appendChild(messageDiv);
+            return;
         }
     
         // Regular message handling
@@ -177,6 +143,35 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
             </div>
             <div class="message-content">${this.escapeHtml(message.content)}</div>
         `;
+        
+        messageDisplay.appendChild(messageDiv);
+        messageDisplay.scrollTop = messageDisplay.scrollHeight;
+    }
+    
+    handleKnockMessage(message, messageDiv, messageDisplay) {
+        const channel = this.app.channels.channels.find(ch => ch.id == this.currentChannel);
+        const isCreator = channel?.creator_id === this.app.currentUser?.id;
+        const isAdmin = this.app.currentUser?.is_admin;
+    
+        if (isCreator || isAdmin) {
+            const knockTemplate = document.getElementById('knockMessageTemplate');
+            if (knockTemplate) {
+                const knockMessage = knockTemplate.content.cloneNode(true);
+                knockMessage.querySelector('.user').textContent = message.username || message.sender_username;
+                
+                const acceptBtn = knockMessage.querySelector('.accept');
+                const declineBtn = knockMessage.querySelector('.decline');
+                
+                acceptBtn.onclick = () => this.handleKnockResponse(message.id, true);
+                declineBtn.onclick = () => this.handleKnockResponse(message.id, false);
+                
+                messageDiv.innerHTML = ''; // Clear system-message class
+                messageDiv.appendChild(knockMessage);
+            }
+        } else if (message.sender_id === this.app.currentUser?.id) {
+            messageDiv.innerHTML = `<div class="knock-request knock-pending">Your join request is pending...</div>`;
+        }
+        
         messageDisplay.appendChild(messageDiv);
         messageDisplay.scrollTop = messageDisplay.scrollHeight;
     }
