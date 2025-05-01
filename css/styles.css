@@ -307,6 +307,35 @@ display: flex;
     background: #00000066;
 }
 
+.invitation-item {
+  background: #17212d;
+  padding: 8px;
+  margin: 4px 0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invitation-item .channel-name {
+  flex-grow: 1;
+}
+
+.invitation-item button {
+  padding: 4px 8px;
+  font-size: 0.8em;
+}
+
+.invitation-item .accept {
+  background: #4CAF50;
+  color: white;
+}
+
+.invitation-item .decline {
+  background: #f44336;
+  color: white;
+}
+
 .channel, .user {
   padding: 8px 10px;
   margin-bottom: 5px;

@@ -182,7 +182,7 @@ class App {
                             this.ui.showError('No channel selected');
                         }
                         break;
-
+                    
                     case 'open-delete-modal':
                         const messageId = target.dataset.id;
                         const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');

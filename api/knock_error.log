@@ -1218,3 +1218,105 @@ Stack trace:
     [input] => {"action":"knock","channel_id":"18"}
 )
 
+[01-May-2025 04:17:34 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[01-May-2025 04:18:35 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[01-May-2025 04:18:36 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"invite","channel_id":8,"user_id":"1"}
+)
+
+[01-May-2025 04:18:36 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[01-May-2025 04:18:54 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[01-May-2025 04:22:44 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[01-May-2025 04:22:47 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"invite","channel_id":19,"user_id":"1"}
+)
+
+[01-May-2025 04:22:47 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[01-May-2025 04:23:19 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[01-May-2025 04:23:21 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"invite","channel_id":20,"user_id":"1"}
+)
+
+[01-May-2025 04:23:21 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[01-May-2025 04:24:19 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+
+[01-May-2025 04:27:35 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"18"}
+)
+
+[01-May-2025 04:27:36 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"18"}
+)
+
+[01-May-2025 04:27:44 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":97,"accepted":true}
+)
+
+[01-May-2025 04:27:45 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock_response","knock_id":93,"accepted":true}
+)
+
+[01-May-2025 04:27:49 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"18"}
+)
+

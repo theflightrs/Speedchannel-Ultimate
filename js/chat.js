@@ -9,8 +9,8 @@ class Chat {
         this.pollingInterval = null;
         this.pollTimeoutId = null
         this.FAST_POLL_RATE = 800;    // 200ms during active chat
-        this.SLOW_POLL_RATE = 8000;   // 8s during inactive chat
-        this.ACTIVE_DURATION = 120000;  // 2min of fast polling after activity
+        this.SLOW_POLL_RATE = 3000;   // 8s during inactive chat
+        this.ACTIVE_DURATION = 30000;  // 30sec of fast polling after activity
         this.lastActivityTime = 0;
 		this.addMessageToDisplay = this.addMessageToDisplay.bind(this);
     }

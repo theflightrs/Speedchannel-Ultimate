@@ -93,21 +93,8 @@ class ChannelManager {
         });
     }
 
-    handleInvitationMessage(message) {
-        const content = JSON.parse(message.content);
-        const invitationHtml = `
-            <div class="channel-invitation">
-                <p>You've been invited to join ${this.escapeHtml(content.channel_name)}</p>
-                <button data-action="respond-invitation" data-message-id="${message.id}" data-response="accept">Accept</button>
-                <button data-action="respond-invitation" data-message-id="${message.id}" data-response="decline">Decline</button>
-            </div>
-        `;
-        
-        this.app.chat.addMessageToDisplay({
-            ...message,
-            content: invitationHtml
-        });
-    }
+
+
 
     async handleChannelCreation() {
         const channelName = document.getElementById('channelName').value.trim();
@@ -265,6 +252,9 @@ class ChannelManager {
             this.app.handleError(error);
         }
     }
+
+
+    
 
     async createChannel(data) {
         return await this.app.api.post('/channels.php', {
