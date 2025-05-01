@@ -1164,3 +1164,15 @@ Stack trace:
     [input] => 
 )
 
+[01-May-2025 02:15:54 Europe/Vienna] Received request: Array
+(
+    [method] => POST
+    [input] => {"action":"knock","channel_id":"11"}
+)
+
+[01-May-2025 02:16:13 Europe/Vienna] Received request: Array
+(
+    [method] => GET
+    [input] => 
+)
+

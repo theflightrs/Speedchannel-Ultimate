@@ -2,10 +2,16 @@ class Chat {
     constructor(app) {
         this.app = app;
         this.currentChannel = null;
-        this.autoRefreshInterval = null;
         this.messages = new Map();
         this.messageQueue = [];
         this.isProcessingQueue = false;	
+        this.lastMessageTimestamp = 0;
+        this.pollingInterval = null;
+        this.pollTimeoutId = null
+        this.FAST_POLL_RATE = 100;    // 100ms during active chat
+        this.SLOW_POLL_RATE = 5000;   // 5s during inactive chat
+        this.ACTIVE_DURATION = 60000;  // 60s of fast polling after activity
+        this.lastActivityTime = 0;
 		this.addMessageToDisplay = this.addMessageToDisplay.bind(this);
     }
 
@@ -76,15 +82,6 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
    
 
 
-      // Start automatic refreshing of messages
-      startAutoRefresh(channelId) {
-        if (this.autoRefreshInterval) clearInterval(this.autoRefreshInterval);
-    
-        this.autoRefreshInterval = setInterval(async () => {
-            console.log(`Refreshing messages for channel: ${channelId}`);
-
-
-
 /*
             try {
                 await fetch('./api/messages.php?action=deleteOld', {
@@ -98,20 +95,8 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
 */
 
 
-            await this.loadMessages(channelId);
-  
-        }, 3000); // Refresh Timer
-    }
-
     
 
-    // Stop automatic refreshing
-    stopAutoRefresh() {
-        if (this.autoRefreshInterval) {
-            clearInterval(this.autoRefreshInterval);
-            this.autoRefreshInterval = null;
-        }
-    }
 
 
     async deleteMessage(messageId, action = 'manual-delete') {
@@ -136,43 +121,54 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
         const messageDiv = document.createElement('div');
         messageDiv.className = message.is_system ? 'message system-message' : 'message';
     
-        // Handle knock messages
-      // In addMessageToDisplay method:
-  // In addMessageToDisplay method:
-if (message.is_system && message.content.includes('is requesting to join')) {
-    // Only show knock requests to channel creator or admin
-    const channel = this.app.channels.channels.find(ch => ch.id == this.currentChannel);
-    const isCreator = channel?.creator_id === this.app.currentUser?.id;
-    const isAdmin = this.app.currentUser?.is_admin;
-
-    if (isCreator || isAdmin) {
-        const knockTemplate = document.getElementById('knockMessageTemplate');
-        if (knockTemplate) {
-            const knockMessage = knockTemplate.content.cloneNode(true);
-            knockMessage.querySelector('.user').textContent = message.username || message.sender_username;
-            
-            const acceptBtn = knockMessage.querySelector('.accept');
-            const declineBtn = knockMessage.querySelector('.decline');
-            
-            // In the message creation/display code
-             acceptBtn.onclick = () => this.handleKnockResponse(message.id, true);
-            declineBtn.onclick = () => this.handleKnockResponse(message.id, false);
-            
-            messageDiv.appendChild(knockMessage);
-            messageDisplay.appendChild(messageDiv);
-            return;
-        }
-    } else {
-        // For non-creators, just show their own knock requests
-        if (message.sender_id === this.app.currentUser?.id) {
-            messageDiv.innerHTML = `<div class="knock-pending">Your join request is pending...</div>`;
-            messageDisplay.appendChild(messageDiv);
-        }
-        return;
-    }
-}
+        // Handle system messages
+        if (message.is_system) {
+            try {
+                const content = JSON.parse(message.content);
+                
+                if (content.type === 'user_joined') {
+                    messageDiv.innerHTML = `
+                        <div class="system-notification">
+                            <span class="username">${this.escapeHtml(content.user)}</span> joined the channel
+                        </div>`;
+                    messageDisplay.appendChild(messageDiv);
+                    return;
+                }
     
-        // Regular message handling (your existing code)
+                // Handle knock messages
+                if (message.content.includes('is requesting to join')) {
+                    const channel = this.app.channels.channels.find(ch => ch.id == this.currentChannel);
+                    const isCreator = channel?.creator_id === this.app.currentUser?.id;
+                    const isAdmin = this.app.currentUser?.is_admin;
+    
+                    if (isCreator || isAdmin) {
+                        const knockTemplate = document.getElementById('knockMessageTemplate');
+                        if (knockTemplate) {
+                            const knockMessage = knockTemplate.content.cloneNode(true);
+                            knockMessage.querySelector('.user').textContent = message.username || message.sender_username;
+                            
+                            const acceptBtn = knockMessage.querySelector('.accept');
+                            const declineBtn = knockMessage.querySelector('.decline');
+                            
+                            acceptBtn.onclick = () => this.handleKnockResponse(message.id, true);
+                            declineBtn.onclick = () => this.handleKnockResponse(message.id, false);
+                            
+                            messageDiv.appendChild(knockMessage);
+                            messageDisplay.appendChild(messageDiv);
+                            return;
+                        }
+                    } else if (message.sender_id === this.app.currentUser?.id) {
+                        messageDiv.innerHTML = `<div class="knock-pending">Your join request is pending...</div>`;
+                        messageDisplay.appendChild(messageDiv);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Error processing system message:', e);
+            }
+        }
+    
+        // Regular message handling
         messageDiv.innerHTML = `
             <div class="message-header">
                 <span class="message-author">${this.escapeHtml(message.username || message.sender_username || 'Unknown')}</span>
@@ -184,6 +180,62 @@ if (message.is_system && message.content.includes('is requesting to join')) {
         messageDisplay.appendChild(messageDiv);
         messageDisplay.scrollTop = messageDisplay.scrollHeight;
     }
+
+
+    async checkNewMessages(channelId) {
+        try {
+            const headers = {
+                'Cache-Control': 'no-cache',
+                'If-Modified-Since': this.lastMessageTimestamp
+            };
+    
+            const response = await this.app.api.get(
+                `/messages.php?channel_id=${channelId}&after=${this.lastMessageTimestamp}`, 
+                { headers }
+            );
+            
+            if (response.status === 304) { // Not Modified
+                return; // No data transfer needed
+            }
+    
+            if (response.success && response.messages.length > 0) {
+                this.lastActivityTime = Date.now();
+                this.lastMessageTimestamp = Math.max(...response.messages.map(m => new Date(m.created_at).getTime()));
+                response.messages.forEach(message => this.addMessageToDisplay(message));
+            }
+        } catch (error) {
+            console.error('Error checking new messages:', error);
+        }
+    }
+
+
+    startPolling(channelId) {
+        if (this.pollingInterval) this.stopPolling();
+        
+        const poll = async () => {
+            await this.checkNewMessages(channelId);
+            
+            // Calculate polling rate based on activity
+            const timeSinceActivity = Date.now() - this.lastActivityTime;
+            const nextPollRate = timeSinceActivity < this.ACTIVE_DURATION 
+                ? this.FAST_POLL_RATE 
+                : this.SLOW_POLL_RATE;
+            
+            this.pollingInterval = setTimeout(poll, nextPollRate);
+        };
+
+        poll();
+    }
+
+
+    stopPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+        }
+    }
+
+
 
 
     async handleKnockResponse(messageId, accepted) {
@@ -208,36 +260,42 @@ if (message.is_system && message.content.includes('is requesting to join')) {
         }
     }
 
-    async loadMessages(channelId) {
-        console.log(`Loading messages for channel ${channelId}`);
-    
-        try {
-            const response = await this.app.api.get(`/messages.php?channel_id=${channelId}`);
+   async loadMessages(channelId) {
+    console.log(`Loading messages for channel ${channelId}`);
 
-            
-            if (!response.success) {
-                throw new Error(response.error || 'Failed to load messages');
-            }
-    
-            this.displayMessages(response.messages);
-          //  this.startAutoRefresh(channelId);
-            
-        } catch (error) {
-            console.error('Error loading messages:', error);
-            this.app.handleError(error);
+    try {
+        const response = await this.app.api.get(`/messages.php?channel_id=${channelId}`);
+        
+        if (!response.success) {
+            throw new Error(response.error || 'Failed to load messages');
         }
-    }
 
-     // Add this method
+        // Update lastMessageTimestamp before starting polling
+        if (response.messages.length > 0) {
+            this.lastMessageTimestamp = Math.max(...response.messages.map(m => new Date(m.created_at).getTime()));
+        }
+
+        this.displayMessages(response.messages);
+        this.startPolling(channelId);
+
+    } catch (error) {
+        console.error('Error loading messages:', error);
+        this.app.handleError(error);
+    }
+}
+
+  
      displayMessages(messages) {
         const messageDisplay = document.getElementById('messageDisplay');
         if (!messageDisplay) return;
 
-        messageDisplay.innerHTML = ''; // Clear the current messages
+        messageDisplay.innerHTML = ''; 
 
         messages.forEach(message => {
-            this.addMessageToDisplay(message); // Use the existing method
+            this.addMessageToDisplay(message); 
         });
+
+   
     }
 
     async sendMessage() {
@@ -286,11 +344,11 @@ if (message.is_system && message.content.includes('is requesting to join')) {
     async switchChannel(channelId) {
     console.log(`Switching to channel ${channelId}`);
     if (!channelId) return;
-
+    this.stopPolling(channelId);
     try {
         const channel = this.app.channels.channels.find(ch => ch.id == channelId);
         if (!channel) throw new Error('Channel not found');
-
+   
         // Handle private channels first, before access check
         if (channel.is_private) {
             const isCreator = channel.creator_id === this.app.currentUser?.id;
@@ -321,33 +379,37 @@ if (message.is_system && message.content.includes('is requesting to join')) {
         document.getElementById("messageInputArea").style.display = "block";
         this.app.modalManager.hideAll();
         this.currentChannel = channel.id;
-        this.app.chat.currentChannel = channel.id;
+        // this.app.chat.currentChannel = channel.id;
         document.getElementById('currentChannelTitle').textContent = `# ${this.escapeHtml(channel.name)}`;
         document.getElementById('channelInfo').hidden = false;
         document.getElementById('channel-controls').hidden = false;
 
         // Load messages first
-        await this.app.chat.loadMessages(channel.id);
-
+        await this.loadMessages(channel.id);
+       
         // Then set up UI controls and check knocks
         const settingsButton = document.getElementById('channelSettingsBtn');
         const manageUsersButton = document.getElementById('manageUsersBtn');
         settingsButton.disabled = !(isAdmin || isCreator);
         manageUsersButton.disabled = !(isAdmin || isCreator);
-
+      
         if (isCreator || isAdmin) {
             await this.checkPendingKnocks(this.currentChannel);
         }
+     
     } catch (error) {
         console.error('Channel switch error:', error);
         this.app.handleError(error);
+        
     }
 }
     clearMessages() {
         const messageDisplay = document.getElementById('messageDisplay');
+       
         if (messageDisplay) {
             messageDisplay.innerHTML = '';
         }
+       
     }
 
     escapeHtml(unsafe) {

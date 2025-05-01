@@ -59,8 +59,9 @@ function getMessages() {
     global $db, $security;
 
     $channelId = $_GET['channel_id'] ?? null;
+    $afterTimestamp = $_GET['after'] ?? null; // Add this line
     $includeFiles = $_GET['include_files'] ?? false;
-    $type = $_GET['type'] ?? null;  // Add type parameter for filtering knocks
+    $type = $_GET['type'] ?? null;
 
     if (!$channelId) {
         throw new Exception('Channel ID is required.');
@@ -79,24 +80,34 @@ function getMessages() {
         ? "SELECT m.*, u.username, f.id as file_id, f.original_name as file_name, f.mime_type" 
         : "SELECT m.*, u.username";
 
+
     // Handle knock messages specifically
+    // Add timestamp condition to queries
     if ($type === 'knock') {
         $query = "$baseQuery 
                  FROM messages m 
                  JOIN users u ON m.sender_id = u.id
                  LEFT JOIN files f ON m.id = f.message_id 
-                 WHERE m.channel_id = ? AND m.is_system = 1
-                 ORDER BY m.created_at DESC";
+                 WHERE m.channel_id = ? AND m.is_system = 1";
     } else {
         $query = "$baseQuery 
                  FROM messages m 
                  JOIN users u ON m.sender_id = u.id
                  LEFT JOIN files f ON m.id = f.message_id 
-                 WHERE m.channel_id = ?
-                 ORDER BY m.created_at ASC";
+                 WHERE m.channel_id = ?";
     }
 
-    $messages = $db->fetchAll($query, [$channelId]);
+    $params = [$channelId];
+
+    // Add timestamp condition if provided
+    if ($afterTimestamp) {
+        $query .= " AND UNIX_TIMESTAMP(m.created_at) * 1000 > ?";
+        $params[] = $afterTimestamp;
+    }
+
+    $query .= " ORDER BY m.created_at " . ($type === 'knock' ? "DESC" : "ASC");
+
+    $messages = $db->fetchAll($query, $params);
 
     foreach ($messages as &$message) {
         $message['content'] = $security->decrypt(
