@@ -200,67 +200,57 @@ class ChannelUserHandler {
     private function handleKnockResponse() {
         try {
             $data = json_decode(file_get_contents('php://input'), true);
+            
             if (!isset($data['knock_id'])) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Knock ID required']);
-                return;
+                throw new Exception('Knock ID required', 400);
             }
     
-            try {
-                $knock = $this->db->fetchOne(
-                    "SELECT m.id, m.sender_id, c.id as channel_id, c.creator_id 
-                     FROM messages m
-                     JOIN channels c ON m.channel_id = c.id
-                     WHERE m.id = ? AND m.is_system = 1",
-                    [$data['knock_id']]
-                );
-            } catch (PDOException $e) {
-                http_response_code(500);
-                echo json_encode(['success' => false, 'error' => 'Database query failed']);
-                return;
-            }
-    
-            if (!$knock) {
-                http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'Knock request not found']);
-                return;
-            }
-    
-            // First delete the knock message
-            $this->db->delete(
-                "DELETE FROM messages WHERE id = ? AND is_system = 1",
+            // Get the knock message first
+            $knock = $this->db->fetchOne(
+                "SELECT m.id, m.sender_id, m.channel_id
+                 FROM messages m
+                 WHERE m.id = ? AND m.is_system = 1",
                 [$data['knock_id']]
             );
     
-            // Then if accepted, add to channel
-            if ($data['accepted']) {
-                try {
-                    // First add the user to channel_users table
-                    $this->db->insert(
-                        "INSERT IGNORE INTO channel_users (channel_id, user_id, role, joined_at)
-                        VALUES (?, ?, 'member', UTC_TIMESTAMP())",
-                        [$knock['channel_id'], $knock['sender_id']]
-                    );
-                    
-                    // Then update the knock message status
-                    $this->db->update(
-                        "UPDATE messages 
-                         SET status = 'accepted'
-                         WHERE id = ? AND is_system = 1",
-                        [$data['knock_id']]
-                    );
-                } catch (PDOException $e) {
-                    http_response_code(500);
-                    echo json_encode(['success' => false, 'error' => 'Failed to add user to channel']);
-                    return;
-                }
+            if (!$knock) {
+                throw new Exception('Knock request not found', 404);
             }
     
-            echo json_encode(['success' => true]);
+            // Only accept 1 or 0 for accepted parameter
+            $accepted = isset($data['accepted']) ? (int)$data['accepted'] === 1 : false;
     
+            // Begin transaction
+            $this->db->beginTransaction();
+    
+            try {
+                if ($accepted) {
+                    // Add user to channel
+                    $this->db->insert(
+                        "INSERT INTO channel_users (channel_id, user_id, role, joined_at)
+                         VALUES (?, ?, 'member', UTC_TIMESTAMP())
+                         ON DUPLICATE KEY UPDATE role = 'member'",
+                        [$knock['channel_id'], $knock['sender_id']]
+                    );
+                }
+    
+                // Delete the knock message
+                $this->db->delete(
+                    "DELETE FROM messages WHERE id = ? AND is_system = 1",
+                    [$data['knock_id']]
+                );
+    
+                $this->db->commit();
+                echo json_encode(['success' => true]);
+    
+            } catch (Exception $e) {
+                $this->db->rollBack();
+                throw new Exception('Failed to process knock response: ' . $e->getMessage());
+            }
         } catch (Exception $e) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internal server error']);
+            error_log("Knock response error: " . $e->getMessage());
+            http_response_code($e->getCode() ?: 500);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         }
     }
 	

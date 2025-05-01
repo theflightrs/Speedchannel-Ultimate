@@ -144,7 +144,6 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
         messageDisplay.appendChild(messageDiv);
         messageDisplay.scrollTop = messageDisplay.scrollHeight;
     }
-    
     handleKnockMessage(message, messageDiv, messageDisplay) {
         const channel = this.app.channels.channels.find(ch => ch.id == this.currentChannel);
         const isCreator = channel?.creator_id === this.app.currentUser?.id;
@@ -154,7 +153,15 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
             const knockTemplate = document.getElementById('knockMessageTemplate');
             if (knockTemplate) {
                 const knockMessage = knockTemplate.content.cloneNode(true);
+                knockMessage.firstElementChild.setAttribute('data-message-id', message.id);
                 knockMessage.querySelector('.user').textContent = message.username || message.sender_username;
+                
+                // Set the message ID as data attribute
+                const messageElement = knockMessage.querySelector('.knock-message');
+                
+                if (messageElement) {
+                    messageElement.dataset.messageId = message.id;
+                }
                 
                 const acceptBtn = knockMessage.querySelector('.accept');
                 const declineBtn = knockMessage.querySelector('.decline');
@@ -162,11 +169,11 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
                 acceptBtn.onclick = () => this.handleKnockResponse(message.id, true);
                 declineBtn.onclick = () => this.handleKnockResponse(message.id, false);
                 
-                messageDiv.innerHTML = ''; // Clear system-message class
+                messageDiv.innerHTML = ''; 
                 messageDiv.appendChild(knockMessage);
             }
         } else if (message.sender_id === this.app.currentUser?.id) {
-            messageDiv.innerHTML = `<div class="knock-request knock-pending">Your join request is pending...</div>`;
+            messageDiv.innerHTML = `<div class="knock-request knock-pending" data-message-id="${message.id}">Your join request is pending...</div>`;
         }
         
         messageDisplay.appendChild(messageDiv);
@@ -243,29 +250,36 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
             }
 */
 
+async handleKnockResponse(messageId, accepted) {
+    try {
+        const response = await this.app.api.post('/channel_users.php', {
+            action: 'knock_response',
+            knock_id: messageId,
+            accepted: accepted ? 1 : 0  // Ensure boolean is sent as 1/0
+        });
 
-
-    async handleKnockResponse(messageId, accepted) {
-        try {
-            const response = await this.app.api.post('/channel_users.php', {
-                action: 'knock_response',
-                knock_id: messageId,  // Use the actual messageId parameter
-                accepted: accepted
-            });
-    
-            if (response.success) {
-                // Remove the knock message from display
-                const knockMessage = document.querySelector(`[data-message-id="${messageId}"]`);
-                if (knockMessage) {
-                    knockMessage.remove();
+        if (response.success) {
+            // Remove knock message
+            const knockMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (knockMessage) {
+                const messageContainer = knockMessage.closest('.message');
+                if (messageContainer) {
+                    messageContainer.remove();
                 }
+            }
+
+            if (accepted) {
+                // Refresh channel data
+                await this.app.channels.loadChannels();
                 // Refresh messages
                 await this.loadMessages(this.currentChannel);
             }
-        } catch (error) {
-            this.app.handleError(error);
         }
+    } catch (error) {
+        console.error('Knock response error:', error);
+        this.app.handleError(error);
     }
+}
 
    async loadMessages(channelId) {
     console.log(`Loading messages for channel ${channelId}`);
