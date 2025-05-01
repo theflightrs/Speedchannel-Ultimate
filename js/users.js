@@ -131,12 +131,13 @@ renderUserList() {
 
 
 
-   async showManageUsers() {
+async showManageUsers() {
     try {
         const channelId = this.app.channelManager.currentChannel;
         if (!channelId) return;
 
-        const response = await this.app.api.get(`/channels.php?action=users&channel_id=${channelId}`);
+        // Change the endpoint from channels.php to channel_users.php
+        const response = await this.app.api.get(`/channel_users.php?action=list&channel_id=${channelId}`);
         if (response.success) {
             this.updateManageUsersContent(response.users);
             this.app.modalManager.show('manageUsersModal');

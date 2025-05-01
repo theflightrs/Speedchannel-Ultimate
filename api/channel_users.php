@@ -65,32 +65,29 @@ class ChannelUserHandler {
                 }
                 break;
 
-            case 'POST':
-                $data = json_decode(file_get_contents('php://input'), true);
-                $action = $data['action'] ?? '';
-                
-                switch ($action) {
-                    case 'invite':
-                        $this->handleInvite();
-                        break;
-                    case 'retract_invite':
-                        $this->handleRetractInvite();
-                        break;
-                    case 'invitation_response':
-                        $this->handleInvitationResponse();
-                        break;
-                    default:
-                        $this->handleAssignUser();
-                }
-                break;
-                case 'knock':  // Add this case
-                    $this->handleKnock();
-                    break;
-                    case 'knock_response':  // Add this too
-                        $this->handleKnockResponse();
-                        break;
-                case 'retract_invite':
-                    $this->handleRetractInvite();
+                case 'POST':
+                    $data = json_decode(file_get_contents('php://input'), true);
+                    $action = $data['action'] ?? '';
+                    
+                    switch ($action) {
+                        case 'invite':
+                            $this->handleInvite();
+                            break;
+                        case 'retract_invite':
+                            $this->handleRetractInvite();
+                            break;
+                        case 'invitation_response':
+                            $this->handleInvitationResponse();
+                            break;
+                        case 'knock':  // Move this inside POST action's switch
+                            $this->handleKnock();
+                            break;
+                        case 'knock_response':  // Move this inside POST action's switch
+                            $this->handleKnockResponse();
+                            break;
+                        default:
+                            $this->handleAssignUser();
+                    }
                     break;
             default:
                 throw new Exception('Method not allowed', 405);
@@ -106,6 +103,7 @@ class ChannelUserHandler {
 
 
     private function canSendMessage($channelId, $userId) {
+        
         $channel = $this->db->fetchOne(
             "SELECT * FROM channels WHERE id = ?",
             [$channelId]
@@ -237,10 +235,19 @@ class ChannelUserHandler {
             // Then if accepted, add to channel
             if ($data['accepted']) {
                 try {
+                    // First add the user to channel_users table
                     $this->db->insert(
                         "INSERT IGNORE INTO channel_users (channel_id, user_id, role, joined_at)
                         VALUES (?, ?, 'member', UTC_TIMESTAMP())",
                         [$knock['channel_id'], $knock['sender_id']]
+                    );
+                    
+                    // Then update the knock message status
+                    $this->db->update(
+                        "UPDATE messages 
+                         SET status = 'accepted'
+                         WHERE id = ? AND is_system = 1",
+                        [$data['knock_id']]
                     );
                 } catch (PDOException $e) {
                     http_response_code(500);
