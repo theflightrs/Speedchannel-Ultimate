@@ -7,6 +7,7 @@ import UI from './ui.js';
 import UserManager from './users.js';
 import FileManager from './files.js';
 import ModalManager from './modal-manager.js';
+import { Lightbox } from './lightbox.js';
 
 class App {
     constructor() {
@@ -15,13 +16,13 @@ class App {
             this.api = new Api();
             this.ui = new UI(this);
             this.currentUser = null;
-
-            this.modalManager = new ModalManager();
             this.auth = new Auth(this);
             this.channels = new ChannelManager(this);
             this.chat = new Chat(this);
             this.userManager = new UserManager(this);
             this.fileManager = new FileManager(this);
+            this.modalManager = new ModalManager();
+            this.lightbox = new Lightbox();
 
             this.log('Application initialized successfully');
 

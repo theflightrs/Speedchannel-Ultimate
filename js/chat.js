@@ -82,9 +82,16 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
     }
 });
 
-      
-
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('message-image')) {
+        this.app.lightbox.show(e.target.dataset.fullsize);
     }
+});
+
+      
+// End of EventListeners
+
+}
 
    
     
@@ -104,16 +111,13 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
         }
     }
 
-    
     addMessageToDisplay(message) {
-        // Skip system messages that shouldn't be displayed
+        // Keep your existing system message handling
         if (message.type === 'invitation' || (message.is_system && !message.encrypted_content)) {
             return;
         }
         const messageDisplay = document.getElementById('messageDisplay');
         if (!messageDisplay) return;
-
-        
     
         const messageDiv = document.createElement('div');
         messageDiv.className = message.is_system ? 'message system-message' : 'message';
@@ -131,7 +135,14 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
             return;
         }
     
-        // Regular message handling
+        // Add file_id check and display
+        const fileContent = message.files?.length ? `
+        <div class="message-files">
+            ${message.files.map(file => this.getFileDisplay(file)).join('')}
+        </div>
+         ` : '';
+    
+        // Regular message handling with files
         messageDiv.innerHTML = `
             <div class="message-header">
                 <span class="message-author">${this.escapeHtml(message.username || message.sender_username || 'Unknown')}</span>
@@ -139,11 +150,93 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
                 ${message.is_owner || message.is_admin ? '<button class="delete-btn" data-id="'+message.id+'"data-action="open-delete-modal">Delete</button>' : ''}
             </div>
             <div class="message-content">${this.escapeHtml(message.content)}</div>
+            ${fileContent}
         `;
         
         messageDisplay.appendChild(messageDiv);
         messageDisplay.scrollTop = messageDisplay.scrollHeight;
     }
+
+    getFileDisplay(file) {
+        if (!file) return '';
+    
+        const isImage = file.mime_type?.startsWith('image/');
+        
+        if (isImage) {
+            const imgPath = `./api/files.php?path=${encodeURIComponent(file.stored_name)}`;
+            return `<img src="${imgPath}" class="message-image" data-fullsize="${imgPath}">`;
+        } else {
+            return `
+                <div class="file-icon" data-file-id="${file.id}" 
+                     onclick="app.modalManager.show({
+                         title: 'Download File',
+                         content: 'Do you want to download \"${this.escapeHtml(file.original_name)}\"?',
+                         buttons: [{
+                             text: 'Download',
+                             class: 'primary',
+                             callback: () => window.location.href = './api/files.php?action=download&id=${file.id}'
+                         }, {
+                             text: 'Cancel',
+                             class: 'secondary'
+                         }]
+                     })">
+                    <span class="icon">${this.getFileIcon(file.mime_type)}</span>
+                    <span class="filename">${this.escapeHtml(file.original_name)}</span>
+                </div>`;
+        }
+    }
+
+
+    getFileIcon(mimeType) {
+        const icons = {
+            'audio/': '🎵',
+            'image/': '🖼️',
+            'video/': '🎥',
+            'application/pdf': '📄',
+            'text/': '📝',
+            'application/zip': '📦',
+            'application/x-rar': '📦',
+            'application/x-7z-compressed': '📦'
+        };
+        return Object.entries(icons).find(([key]) => mimeType?.startsWith(key))?.[1] || '📎';
+    }
+
+    getFileIcon(mimeType) {
+        const icons = {
+            'audio/': '🎵',
+            'image/': '🖼️',
+            'video/': '🎥',
+            'application/pdf': '📄',
+            'text/': '📝',
+            'application/zip': '📦',
+            'application/x-rar': '📦',
+            'application/x-7z-compressed': '📦'
+        };
+        return Object.entries(icons).find(([key]) => mimeType?.startsWith(key))?.[1] || '📎';
+    }
+    getFileIcon(mimeType) {
+        const icons = {
+            'audio/': '🎵',
+            'image/': '🖼️',
+            'video/': '🎥',
+            'application/pdf': '📄',
+            'text/': '📝',
+            'application/zip': '📦',
+            'application/x-rar': '📦',
+            'application/x-7z-compressed': '📦'
+        };
+        return Object.entries(icons).find(([key]) => mimeType?.startsWith(key))?.[1] || '📎';
+    }
+
+    showLightbox(storedName) {
+        this.modalManager.show({
+            title: '',
+            content: `<div class="lightbox-image"><img src="./api/files.php?path=${storedName}"></div>`,
+            size: 'large'
+        });
+    }
+
+
     handleKnockMessage(message, messageDiv, messageDisplay) {
         const channel = this.app.channels.channels.find(ch => ch.id == this.currentChannel);
         const isCreator = channel?.creator_id === this.app.currentUser?.id;
@@ -319,6 +412,8 @@ async handleKnockResponse(messageId, accepted) {
    
     }
 
+
+    
     async sendMessage() {
         if (!this.currentChannel || !this.app.currentUser) {
             this.app.ui.showError("Please select a channel and ensure you're logged in");
@@ -327,9 +422,10 @@ async handleKnockResponse(messageId, accepted) {
     
         const messageInput = document.getElementById('messageInput');
         const content = messageInput.value.trim();
+        const hasFiles = this.app.fileManager.pendingFiles.size > 0;
     
-        if (!content) {
-            this.app.ui.showError("Message cannot be empty");
+        if (!content && !hasFiles) {
+            this.app.ui.showError("Message or file required");
             return;
         }
     
@@ -342,18 +438,25 @@ async handleKnockResponse(messageId, accepted) {
             this.messageQueue.push({
                 channel_id: this.currentChannel,
                 content: content,
+                hasFiles: hasFiles,
                 timestamp: Date.now()
             });
     
-            const response = await this.app.api.post('/messages.php', {
+            // Send single message first
+            const messageResponse = await this.app.api.post('/messages.php', {
                 channel_id: this.currentChannel,
-                content: content
+                content: content || ' ', // Use space for file-only messages
+                hasFiles: hasFiles
             });
     
-            if (response.success) {
-                messageInput.value = '';
-                await this.loadMessages(this.currentChannel); // Refresh messages after sending
+            // Upload all files for this message
+            if (messageResponse.success && hasFiles) {
+                await this.app.fileManager.uploadFiles(messageResponse.message_id);
             }
+    
+            messageInput.value = '';
+            this.app.fileManager.clearAttachments();
+            await this.loadMessages(this.currentChannel);
         } catch (error) {
             console.error('Error sending message:', error);
             this.app.ui.showError('Failed to send message');
@@ -361,7 +464,6 @@ async handleKnockResponse(messageId, accepted) {
             setTimeout(() => this.messageQueue.shift(), 1000);
         }
     }
-
     async switchChannel(channelId) {
     console.log(`Switching to channel ${channelId}`);
     if (!channelId) return;

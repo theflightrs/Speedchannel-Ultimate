@@ -446,6 +446,7 @@ error_log("[INDEX] Security instance created")
         integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==" 
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+<!-- <script type="module" src="js/lightbox.js"></script> -->
 <script type="module" src="./js/app.js"></script>
 <script src="js/AuthState.js"></script>
 

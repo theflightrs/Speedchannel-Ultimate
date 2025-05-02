@@ -56,23 +56,18 @@ function checkChannelAccess($channelId) {
  * Handle GET requests to retrieve messages for a specific channel.
  */
 function getMessages() {
-     header('Cache-Control: no-cache');
-    
- 
+    header('Cache-Control: no-cache');
     global $db, $security;
 
     $channelId = $_GET['channel_id'] ?? null;
-    $afterTimestamp = $_GET['after'] ?? null; // Add this line
-    $includeFiles = $_GET['include_files'] ?? false;
+    $afterTimestamp = $_GET['after'] ?? null;
     $type = $_GET['type'] ?? null;
 
-
-    
     if (!$channelId) {
         throw new Exception('Channel ID is required.');
     }
 
-    // Allow access to system messages (knocks) for channel creators/admins
+    // Check access
     $channel = $db->fetchOne("SELECT creator_id FROM channels WHERE id = ?", [$channelId]);
     $isCreatorOrAdmin = ($channel && ($channel['creator_id'] == $_SESSION['user_id'] || $_SESSION['is_admin']));
 
@@ -80,37 +75,30 @@ function getMessages() {
         throw new Exception('Access denied.');
     }
 
-    // Base query
-    $baseQuery = $includeFiles 
-        ? "SELECT m.*, u.username, f.id as file_id, f.original_name as file_name, f.mime_type" 
-        : "SELECT m.*, u.username";
+    // Base query with files
+    $query = "SELECT m.*, u.username, 
+              GROUP_CONCAT(f.id) as file_ids,
+              GROUP_CONCAT(f.original_name) as file_names,
+              GROUP_CONCAT(f.stored_name) as stored_names,
+              GROUP_CONCAT(f.mime_type) as mime_types
+              FROM messages m 
+              JOIN users u ON m.sender_id = u.id
+              LEFT JOIN files f ON m.id = f.message_id";
 
-
-    // Handle knock messages specifically
-    // Add timestamp condition to queries
     if ($type === 'knock') {
-        $query = "$baseQuery 
-                 FROM messages m 
-                 JOIN users u ON m.sender_id = u.id
-                 LEFT JOIN files f ON m.id = f.message_id 
-                 WHERE m.channel_id = ? AND m.is_system = 1";
+        $query .= " WHERE m.channel_id = ? AND m.is_system = 1";
     } else {
-        $query = "$baseQuery 
-                 FROM messages m 
-                 JOIN users u ON m.sender_id = u.id
-                 LEFT JOIN files f ON m.id = f.message_id 
-                 WHERE m.channel_id = ?";
+        $query .= " WHERE m.channel_id = ?";
     }
 
     $params = [$channelId];
 
-    // Add timestamp condition if provided
     if ($afterTimestamp) {
         $query .= " AND UNIX_TIMESTAMP(m.created_at) * 1000 > ?";
         $params[] = $afterTimestamp;
     }
 
-    $query .= " ORDER BY m.created_at " . ($type === 'knock' ? "DESC" : "ASC");
+    $query .= " GROUP BY m.id ORDER BY m.created_at " . ($type === 'knock' ? "DESC" : "ASC");
 
     $messages = $db->fetchAll($query, $params);
 
@@ -122,8 +110,30 @@ function getMessages() {
             ENCRYPTION_KEY
         ) ?: '[Decryption failed]';
 
+        // Process files into array
+        if ($message['file_ids']) {
+            $message['files'] = array_map(function($id, $name, $stored, $mime) {
+                return [
+                    'id' => $id,
+                    'original_name' => $name,
+                    'stored_name' => $stored,
+                    'mime_type' => $mime
+                ];
+            }, 
+            explode(',', $message['file_ids']),
+            explode(',', $message['file_names']),
+            explode(',', $message['stored_names']),
+            explode(',', $message['mime_types'])
+            );
+        } else {
+            $message['files'] = [];
+        }
+
         $message['is_owner'] = $message['sender_id'] == $_SESSION['user_id'];
         $message['is_admin'] = $_SESSION['is_admin'] ?? false;
+
+        // Clean up concatenated fields
+        unset($message['file_ids'], $message['file_names'], $message['stored_names'], $message['mime_types']);
     }
 
     echo json_encode([
@@ -135,37 +145,40 @@ function getMessages() {
 /**
  * Handle POST requests to send a message to a specific channel.
  */
+
 function sendMessage() {
     global $db, $security;
 
     $data = json_decode(file_get_contents('php://input'), true);
     
-    if (!isset($data['channel_id'], $data['content'])) {
-        throw new Exception('Missing required fields');
+    if (!isset($data['channel_id'])) {
+        throw new Exception('Channel ID is required');
     }
 
     $channelId = $data['channel_id'];
-    $content = trim($data['content']);
+    $content = trim($data['content'] ?? '');
+    $hasFiles = !empty($data['hasFiles']); // Check if files are being attached
 
-    if (empty($content)) {
-        throw new Exception('Message content cannot be empty');
+    if (empty($content) && !$hasFiles) {
+        throw new Exception('Message content or files required');
     }
 
     if (!checkChannelAccess($channelId)) {
         throw new Exception('Access denied to this channel');
     }
 
-    $encrypted = $security->encrypt($content, ENCRYPTION_KEY);
+    $encrypted = $security->encrypt($content ?: ' ', ENCRYPTION_KEY); // Use space for file-only messages
     
     $messageId = $db->insert(
-        "INSERT INTO messages (channel_id, sender_id, encrypted_content, iv, tag, created_at)
-         VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP())",
+        "INSERT INTO messages (channel_id, sender_id, encrypted_content, iv, tag, has_attachment, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())",
         [
             $channelId,
             $_SESSION['user_id'],
             $encrypted['ciphertext'],
             $encrypted['iv'],
-            $encrypted['tag']
+            $encrypted['tag'],
+            $hasFiles ? 1 : 0
         ]
     );
 
