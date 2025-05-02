@@ -149,6 +149,7 @@ async showManageUsers() {
     }
 }
 
+
 updateManageUsersContent(users) {
     const userList = document.querySelector('#channelUsersList');
     if (!userList) return;
@@ -156,13 +157,48 @@ updateManageUsersContent(users) {
     userList.innerHTML = users.map(user => `
         <div class="channel-user" data-user-id="${user.id}">
             <span class="user-name">${this.escapeHtml(user.username)}</span>
-            <button class="remove-user" data-action="remove-user" data-user-id="${user.id}">
+            <button class="remove-user" 
+                    data-action="remove-user"
+                    data-user-id="${user.id}">
                 Remove
             </button>
         </div>
     `).join('');
 
+    // Initialize the event listeners for remove buttons
     this.initializeRemoveUserEvents();
+}
+
+initializeRemoveUserEvents() {
+    const userList = document.querySelector('#channelUsersList');
+    if (!userList) return;
+
+    userList.querySelectorAll('.remove-user').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const userId = e.target.dataset.userId;
+            if (!userId) return;
+
+            try {
+                const response = await this.app.api.post('/channel_users.php', {
+                    action: 'remove',
+                    channel_id: this.app.channelManager.currentChannel,
+                    user_id: userId
+                });
+
+                if (response.success) {
+                    // Only remove the UI element if the backend operation succeeded
+                    const userElement = document.querySelector(`.channel-user[data-user-id="${userId}"]`);
+                    if (userElement) {
+                        userElement.remove();
+                    }
+                    // Refresh the channel list to update lock icons
+                    await this.app.channelManager.loadChannelList();
+                }
+            } catch (error) {
+                this.app.ui.showError('Failed to remove user from channel');
+            }
+        });
+    });
 }
 
     renderManageUsersModal(users) {
@@ -248,19 +284,46 @@ updateManageUsersContent(users) {
             });
     
             if (response.success) {
-                this.app.ui.showSuccess('User removed from channel');
+                // Update both current users and available users lists with the returned data
+                const currentUsersList = document.querySelector('#channelUsersList');
+                const availableUsersList = document.querySelector('#availableUsersList');
     
-                // Manually remove the user's element from the list
-                const userItem = document.querySelector(`.channel-user[data-user-id="${userId}"]`);
-                if (userItem) {
-                    userItem.remove();
+                if (currentUsersList) {
+                    currentUsersList.innerHTML = response.data.users.map(user => `
+                        <div class="channel-user" data-user-id="${user.id}">
+                            <span class="user-name">${user.username}</span>
+                            ${user.is_creator ? ' 👑' : ''}
+                            <button class="remove-user" data-action="remove-user" data-user-id="${user.id}">
+                                Remove
+                            </button>
+                        </div>
+                    `).join('');
                 }
+    
+                if (availableUsersList) {
+                    availableUsersList.innerHTML = response.data.available_users.map(user => `
+                        <div class="available-user" data-user-id="${user.id}">
+                            <span class="user-name">${user.username}</span>
+                            <button class="add-user" 
+                                    data-action="${user.pending ? 'retract-invite' : 'add-user'}"
+                                    data-user-id="${user.id}">
+                                ${user.pending ? 'Pending' : 'Add'}
+                            </button>
+                        </div>
+                    `).join('');
+                }
+    
+                // Refresh channel list to update lock icons
+                await this.app.channelManager.loadChannelList();
+                
+                this.app.ui.showSuccess('User removed from channel');
             }
         } catch (error) {
             this.app.ui.showError(error.message);
         }
     }
 
+    
     async addUserToChannel(username) {
         try {
             const response = await this.app.api.post('/channels.php', {

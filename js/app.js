@@ -197,13 +197,23 @@ class App {
                             const userId = target.dataset.userId;
                             if (userId) {
                                 (async () => {
-                                    await this.channels.removeUserFromChannel(userId);
+                                    const response = await this.api.post('/channel_users.php', {
+                                        action: 'remove',
+                                        channel_id: this.channels.currentChannel,
+                                        user_id: userId
+                                    });
+                        
+                                    if (response.success) {
+                                        // Reload the entire channel user lists
+                                        await this.channels.loadChannelUsers();
+                                        this.ui.showSuccess('User removed from channel');
+                                    }
                                 })().catch(error => {
                                     console.error('Error removing user:', error);
                                     this.handleError(error);
                                 });
                             }
-                            e.stopPropagation(); // Stop event from bubbling up
+                            e.stopPropagation();
                             break;
                         }
                     case 'manual-delete':

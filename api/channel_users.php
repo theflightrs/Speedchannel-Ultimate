@@ -63,6 +63,9 @@ class ChannelUserHandler {
                     $action = $data['action'] ?? '';
                     
                     switch ($action) {
+                        case 'remove':  // <-- Move this case here
+                            $this->handleRemoveUser();
+                            break;
                         case 'invite':
                             $this->handleInvite();
                             break;
@@ -82,68 +85,7 @@ class ChannelUserHandler {
                             $this->handleAssignUser();
                     }
                     break;
-                    case 'remove':
-                        $channelId = $data['channel_id'] ?? null;
-                        $userId = $data['user_id'] ?? null;
                     
-                        if (!$channelId || !$userId) {
-                            throw new Exception('Channel ID and User ID are required.', 400);
-                        }
-                    
-                        // Verify channel access
-                        $channel = $this->db->fetchOne(
-                            "SELECT creator_id FROM channels WHERE id = ?",
-                            [$channelId]
-                        );
-                    
-                        if (!$channel) {
-                            throw new Exception('Channel not found.', 404);
-                        }
-                    
-                        $isAdmin = $_SESSION['is_admin'] ?? false;
-                        $canManage = $isAdmin || $channel['creator_id'] == $_SESSION['user_id'];
-                    
-                        if (!$canManage) {
-                            throw new Exception('Permission denied.', 403);
-                        }
-                    
-                        // Prevent removing the channel creator
-                        if ($userId == $channel['creator_id']) {
-                            throw new Exception('Cannot remove the channel creator.', 403);
-                        }
-                    
-                        // Remove the user from the channel
-                        $this->db->delete(
-                            "DELETE FROM channel_users WHERE channel_id = ? AND user_id = ?",
-                            [$channelId, $userId]
-                        );
-                    
-                        // Fetch updated user lists
-                        $users = $this->db->fetchAll(
-                            "SELECT u.id, u.username, u.is_admin 
-                             FROM users u
-                             JOIN channel_users cu ON u.id = cu.user_id
-                             WHERE cu.channel_id = ?
-                             ORDER BY u.username",
-                            [$channelId]
-                        );
-                    
-                        $availableUsers = $this->db->fetchAll(
-                            "SELECT u.id, u.username, u.is_admin
-                             FROM users u
-                             WHERE u.id NOT IN (
-                                 SELECT user_id FROM channel_users WHERE channel_id = ?
-                             ) AND u.is_active = TRUE
-                             ORDER BY u.username",
-                            [$channelId]
-                        );
-                    
-                        echo json_encode([
-                            'success' => true,
-                            'users' => $users,
-                            'available_users' => $availableUsers
-                        ]);
-                        break;
             default:
                 throw new Exception('Method not allowed', 405);
         }
@@ -646,31 +588,83 @@ if (!$channel || ($channel['creator_id'] != $_SESSION['user_id'] && !$_SESSION['
             throw new Exception('Missing required parameters', 400);
         }
     
-        $channel = $this->db->fetchOne("SELECT creator_id FROM channels WHERE id = ?", [$channelId]);
-        if (!$channel) {
-            error_log("Error: Channel not found with id=$channelId");
-            throw new Exception('Channel not found', 404);
-        }
+        try {
+            $this->db->beginTransaction();
     
-        if ($channel['creator_id'] !== $_SESSION['user_id'] && !$_SESSION['is_admin']) {
-            error_log("Error: Permission denied for user_id=$userId in channel_id=$channelId");
-            throw new Exception('Permission denied', 403);
-        }
+            // Verify channel access
+            $channel = $this->db->fetchOne(
+                "SELECT creator_id FROM channels WHERE id = ?",
+                [$channelId]
+            );
     
-        if ($userId === $channel['creator_id']) {
-            error_log("Error: Cannot remove channel creator");
-            throw new Exception('Cannot remove channel creator', 400);
-        }
+            if (!$channel) {
+                throw new Exception('Channel not found', 404);
+            }
     
-        // Execute DELETE query and check if it affects rows
-        $affectedRows = $this->db->delete("DELETE FROM channel_users WHERE channel_id = ? AND user_id = ?", [$channelId, $userId]);
+            $isAdmin = $_SESSION['is_admin'] ?? false;
+            $canManage = $isAdmin || $channel['creator_id'] == $_SESSION['user_id'];
     
-        if ($affectedRows > 0) {
-            error_log("User $userId removed from channel $channelId successfully");
-            echo json_encode(['success' => true]);
-        } else {
-            error_log("Error: Failed to remove user $userId from channel $channelId");
-            echo json_encode(['success' => false, 'error' => 'Failed to remove user']);
+            if (!$canManage) {
+                throw new Exception('Permission denied', 403);
+            }
+    
+            if ($userId === $channel['creator_id']) {
+                throw new Exception('Cannot remove channel creator', 400);
+            }
+    
+            // First verify the user exists in the channel
+            $userExists = $this->db->fetchOne(
+                "SELECT 1 FROM channel_users WHERE channel_id = ? AND user_id = ?",
+                [$channelId, $userId]
+            );
+    
+            if (!$userExists) {
+                throw new Exception('User not found in channel', 404);
+            }
+    
+            // Remove user from the channel
+            $affectedRows = $this->db->delete(
+                "DELETE FROM channel_users WHERE channel_id = ? AND user_id = ?",
+                [$channelId, $userId]
+            );
+    
+            if ($affectedRows === 0) {
+                throw new Exception('Failed to remove user from channel');
+            }
+    
+            // Get updated lists after successful removal
+            $updatedUsers = $this->db->fetchAll(
+                "SELECT u.id, u.username, u.is_admin, cu.role,
+                        CASE WHEN c.creator_id = u.id THEN 1 ELSE 0 END as is_creator
+                 FROM users u
+                 JOIN channel_users cu ON u.id = cu.user_id
+                 JOIN channels c ON cu.channel_id = c.id
+                 WHERE cu.channel_id = ? AND u.is_active = TRUE
+                 ORDER BY u.username",
+                [$channelId]
+            );
+    
+            // Delete any pending invitations or system messages for this user in this channel
+            $this->db->delete(
+                "DELETE FROM messages 
+                 WHERE channel_id = ? 
+                 AND recipient_id = ? 
+                 AND type = 'invitation' 
+                 AND is_system = 1",
+                [$channelId, $userId]
+            );
+    
+            $this->db->commit();
+            
+            echo json_encode([
+                'success' => true,
+                'users' => $updatedUsers
+            ]);
+            
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("Error in handleRemoveUser: " . $e->getMessage());
+            throw $e;
         }
     }
 }
