@@ -226,9 +226,21 @@ function handleListChannels($db, $userId) {
         OR cu.user_id IS NOT NULL  -- Member sees their channels
     ORDER BY c.name ASC";
 
+    $channels = $db->fetchAll($query, [$userId, $userId, $userId, $isAdmin, $userId]);
+    
+    // Add ETag support
+    $etag = md5(json_encode($channels));
+    header('ETag: ' . $etag);
+
+    // Check if client has valid cached version
+    if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && $_SERVER['HTTP_IF_NONE_MATCH'] === $etag) {
+        http_response_code(304);
+        exit;
+    }
+
     return [
         'success' => true,
-        'channels' => $db->fetchAll($query, [$userId, $userId, $userId, $isAdmin, $userId])
+        'channels' => $channels
     ];
 }
 /**

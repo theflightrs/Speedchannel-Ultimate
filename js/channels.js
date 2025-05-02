@@ -5,12 +5,26 @@ class ChannelManager {
         this.app = app;
         this.channels = [];
         this.currentChannel = null;
+
+        this.etags = {
+            channels: null,
+            users: null,
+            invitations: null
+        };
+        this.cache = {
+            channels: [],
+            users: new Map(),
+            availableUsers: new Map(),
+            invitations: []
+        };
+
+
         this.initializeEventListeners();
         this.initializeInvitationEvents(); // Add this line
 
-        if (autoload) {
-            setInterval(() => this.loadPendingInvitations(), 1000);
-        }
+      //  if (autoload) {
+      //      setInterval(() => this.loadPendingInvitations(), 1000);
+      //  }
     }
 
     checkChannelAccess(channel, user) {
@@ -98,6 +112,7 @@ class ChannelManager {
                 if (!this.modalLoaded) {
                     this.debounce(() => this.loadChannelUsers(), 300)();
                     this.modalLoaded = true; // Prevent multiple calls
+                    
                 }
             });
     }
@@ -609,9 +624,9 @@ renderInvitationsList(invitations) {
     if (!list) return;
     
     list.innerHTML = invitations.map(inv => `
-        <div class="channel-item invitation-item" data-message-id="${inv.id}">
-            <span class="invitation-item">${this.escapeHtml(inv.channel_name)}</span>
-            <div class="invitation-buttons">
+        <div class="invitation-item" data-message-id="${inv.id}">
+           <div class="chanName">${this.escapeHtml(inv.channel_name)}</div><br>
+            <div class="invitation-buttons"> 
                 <button class="accept-invite" data-action="accept-invitation" data-message-id="${inv.id}">Accept</button>
                 <button class="decline-invite" data-action="decline-invitation" data-message-id="${inv.id}">Decline</button>
             </div>
@@ -619,24 +634,130 @@ renderInvitationsList(invitations) {
     `).join('') || '<p class="no-invites">No pending invitations</p>';
 }
 
+
 async pollUserLists() {
+    const manageUsersModal = document.getElementById('manageUsersModal');
+    if (!manageUsersModal || manageUsersModal.style.display !== 'block') return;
+
     try {
         const channelId = this.currentChannel;
         if (!channelId) return;
 
-        const response = await this.app.api.get(`/channel_users.php?action=list&channel_id=${channelId}`);
+        const headers = {};
+        if (this.lastEtag) {
+            headers['If-None-Match'] = this.lastEtag;
+        }
+
+        const response = await this.app.api.get(
+            `/channel_users.php?action=list&channel_id=${channelId}`,
+            { headers }
+        );
+
+        if (response.status === 304) return; // No changes
+
         if (response.success) {
-            const { users, available_users } = response.data;
-
-            // Update current users
-            this.updateUserList('#channelUsersList', users);
-
-            // Update available users
-            this.updateUserList('#availableUsersList', available_users);
+            await this.loadChannelUsers();
+            this.lastEtag = response.headers?.get('ETag');
         }
     } catch (error) {
         console.error('Error polling user lists:', error);
     }
+}
+
+async pollChannels() {
+    try {
+        const headers = this.etags.channels ? { 'If-None-Match': this.etags.channels } : {};
+        const response = await this.app.api.get('/channels.php', { headers });
+
+        if (response.status === 304) return; // No changes
+
+        if (response.success) {
+            this.channels = response.channels || [];
+            this.renderChannelList();
+            this.etags.channels = response.headers?.get('ETag');
+        }
+    } catch (error) {
+        console.error('Error polling channels:', error);
+    }
+}
+
+
+async pollInvitations() {
+    const headers = this.etags.invitations ? { 'If-None-Match': this.etags.invitations } : {};
+    
+    const response = await this.app.api.get('/channel_users.php?action=list_invites', { headers });
+    if (response.status === 304) return;
+
+    if (response.success && response.invitations) {
+        if (this.hasInvitationsChanged(response.invitations)) {
+            this.cache.invitations = response.invitations;
+            this.renderInvitationsList(response.invitations);
+        }
+        this.etags.invitations = response.headers?.get('ETag');
+    }
+}
+
+hasChannelsChanged(newChannels) {
+    return JSON.stringify(this.sortAndSimplify(this.cache.channels)) !== 
+           JSON.stringify(this.sortAndSimplify(newChannels));
+}
+
+hasInvitationsChanged(newInvitations) {
+    return JSON.stringify(this.cache.invitations) !== JSON.stringify(newInvitations);
+}
+
+
+async pollUpdates() {
+    if (!this.app.currentUser) return;
+
+    try {
+        // 1. Poll Channels
+        await this.pollChannels();
+
+        // 2. Poll User Lists (only if in a channel)
+        if (this.currentChannel) {
+            await this.pollUserLists();
+        }
+
+        // 3. Poll Invitations
+        await this.pollInvitations();
+        
+    } catch (error) {
+        console.error('Error in polling updates:', error);
+    }
+}
+
+hasUserListsChanged(newUsers, newAvailableUsers) {
+    // Compare with cached data
+    const changesInUsers = this.hasArrayChanged(
+        Array.from(this.userListsCache.channelUsers.values()),
+        newUsers
+    );
+    
+    const changesInAvailable = this.hasArrayChanged(
+        Array.from(this.userListsCache.availableUsers.values()),
+        newAvailableUsers
+    );
+
+    return changesInUsers || changesInAvailable;
+}
+
+hasArrayChanged(oldArray, newArray) {
+    if (oldArray.length !== newArray.length) return true;
+    
+    return JSON.stringify(this.sortAndSimplify(oldArray)) !== 
+           JSON.stringify(this.sortAndSimplify(newArray));
+}
+
+sortAndSimplify(users) {
+    // Create a simplified version of users for comparison
+    return users
+        .map(u => ({
+            id: u.id,
+            username: u.username,
+            is_online: u.is_online
+        }))
+        .sort((a, b) => a.id - b.id);
 }
 
 
@@ -644,19 +765,39 @@ updateUserList(containerId, users) {
     const container = document.querySelector(containerId);
     if (!container) return;
 
-    container.innerHTML = users.map(user => `
-        <div class="channel-user" data-user-id="${user.id}">
-            <span class="user-name">${this.escapeHtml(user.username)}</span>
-            <button class="remove-user" data-action="remove-user" data-user-id="${user.id}">
-                Remove
-            </button>
-        </div>
-    `).join('');
+    // Different templates for each list
+    if (containerId === '#channelUsersList') {
+        container.innerHTML = users.map(user => `
+            <div class="channel-user" data-user-id="${user.id}">
+                <div class="user-info">
+                    <span>${user.username}</span>
+                    ${user.is_creator ? ' 👑' : ''}
+                    ${user.is_admin ? ' 🛡️' : ''}
+                </div>
+                <button class="remove-user" data-action="remove-user" data-user-id="${user.id}">
+                    Remove
+                </button>
+            </div>
+        `).join('');
+    } else if (containerId === '#availableUsersList') {
+        container.innerHTML = users.map(user => `
+            <div class="available-user" data-user-id="${user.id}">
+                <div class="user-info">
+                    <span>${user.username}</span>
+                    ${user.is_admin ? ' 🛡️' : ''}
+                </div>
+                <button class="add-user ${user.pending ? 'pending-invite' : ''}"
+                        data-action="${user.pending ? 'retract-invite' : 'add-user'}"
+                        data-user-id="${user.id}">
+                    ${user.pending ? 'Pending' : 'Add'}
+                </button>
+            </div>
+        `).join('');
+    }
 
     // Reattach event listeners
     this.initializeUserEvents();
 }
-
 
     escapeHtml(unsafe) {
         if (typeof unsafe !== "string") return "";

@@ -6,16 +6,16 @@ class Chat {
         this.messageQueue = [];
         this.isProcessingQueue = false;	
         this.lastMessageTimestamp = 0;
-        this.pollingInterval = null;
-        this.pollTimeoutId = null
+      //  this.pollingInterval = null;
+      //  this.pollTimeoutId = null
 
     /* Polling: Accelerates polling, if a message was received, for
        a certain duration (ACTIVE_DURATION), then throttles it down.
        Creates more efficiency for users who rely on mobile data etc. */
 
-        this.FAST_POLL_RATE = 1000;    // ms during active chat
-        this.SLOW_POLL_RATE = 5000;   // ms during inactive chat
-        this.ACTIVE_DURATION = 30000;  // ms of fast polling after activity
+      //  this.FAST_POLL_RATE = 1000;    // ms during active chat
+      //  this.SLOW_POLL_RATE = 5000;   // ms during inactive chat
+      //  this.ACTIVE_DURATION = 30000;  // ms of fast polling after activity
     
 
         this.lastActivityTime = 0;
@@ -299,34 +299,6 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
     }
 
 
-    startPolling(channelId) {
-        if (this.pollingInterval) this.stopPolling();
-        
-        const poll = async () => {
-            // Don't poll if tab is hidden
-            if (document.hidden) {
-                this.pollingInterval = setTimeout(poll, this.SLOW_POLL_RATE);
-                return;
-            }
-            await this.checkNewMessages(channelId);
-            const timeSinceActivity = Date.now() - this.lastActivityTime;
-            const nextPollRate = timeSinceActivity < this.ACTIVE_DURATION 
-                ? this.FAST_POLL_RATE 
-                : this.SLOW_POLL_RATE;
-            
-            this.pollingInterval = setTimeout(poll, nextPollRate);
-        };
-    
-        poll();
-    }
-
-
-    stopPolling() {
-        if (this.pollingInterval) {
-            clearInterval(this.pollingInterval);
-            this.pollingInterval = null;
-        }
-    }
 
 /*
             try {
@@ -387,7 +359,7 @@ async handleKnockResponse(messageId, accepted) {
         }
 
         this.displayMessages(response.messages);
-        this.startPolling(channelId);
+      //  this.startPolling(channelId);
 
     } catch (error) {
         console.error('Error loading messages:', error);

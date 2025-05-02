@@ -319,7 +319,7 @@ display: flex;
     background: #00000066;
 }
 
-/*
+
 .invitation-item {
   background: #17212d;
   padding: 8px;
@@ -329,6 +329,8 @@ display: flex;
   align-items: center;
   gap: 8px;
 }
+
+/*
 
 .invitation-item .channel-name {
   flex-grow: 1;
@@ -364,13 +366,19 @@ display: flex;
   background: #00000066;
   border-radius: 4px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  flex-direction: column;
 }
 
 .invitation-actions {
   display: flex;
   gap: 8px;
+}
+
+.chanName {
+  text-align: center;
+  display: contents;
+  padding: 10px;
 }
 
 .accept-invite {

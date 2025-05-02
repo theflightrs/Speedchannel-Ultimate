@@ -24,6 +24,13 @@ class App {
             this.fileManager = new FileManager(this);
             this.modalManager = new ModalManager();
 
+            this.polling = {
+                interval: null,
+                FAST_RATE: 1000,    // 5 seconds when active
+                SLOW_RATE: 5000,   // 15 seconds when inactive
+                INACTIVE_TIMEOUT: 20000, // 1 minute of no activity
+                lastActivityTime: Date.now()
+            };
 
             this.log('Application initialized successfully');
 
@@ -78,6 +85,7 @@ class App {
                     this.userManager.loadUsers(),
                     this.channels.loadChannels(),
                     document.getElementById('userDisplay').textContent = userResponse.user.username,
+                    this.startPolling()
                 ]);
             }
         } catch (error) {
@@ -89,6 +97,55 @@ class App {
             if (spinner) spinner.style.display = 'none';
         }
     }
+
+   // In the startPolling method
+   startPolling() {
+    if (this.polling.interval) this.stopPolling();
+    
+    const poll = async () => {
+        if (document.hidden || !this.currentUser) {
+            this.polling.interval = setTimeout(poll, this.polling.SLOW_RATE);
+            return;
+        }
+
+        try {
+            // Run all polls in parallel
+            await Promise.all([
+                this.userManager.loadUsers(),
+                this.channels.pollChannels(),
+                this.channels.pollUserLists(),
+                this.channels.loadPendingInvitations(),
+                // Add chat message polling if in a channel
+                this.chat.currentChannel ? this.chat.checkNewMessages(this.chat.currentChannel) : Promise.resolve()
+            ]);
+            
+            // Use chat's activity state to determine poll rate
+            const hasRecentChatActivity = Date.now() - this.chat.lastActivityTime < 30000; // 30 seconds
+            const nextPollRate = hasRecentChatActivity 
+                ? this.polling.FAST_RATE    // 5 seconds
+                : this.polling.SLOW_RATE;   // 15 seconds
+            
+            this.polling.interval = setTimeout(poll, nextPollRate);
+        } catch (error) {
+            console.error('Polling error:', error);
+            this.polling.interval = setTimeout(poll, this.polling.SLOW_RATE);
+        }
+    };
+
+    poll();
+}
+
+    stopPolling() {
+        if (this.polling.interval) {
+            clearTimeout(this.polling.interval);
+            this.polling.interval = null;
+        }
+    }
+
+    updateActivity() {
+        this.polling.lastActivityTime = Date.now();
+    }
+
 
     setupEventDelegation() {
         document.addEventListener('click', (e) => {
@@ -281,6 +338,8 @@ class App {
 
     handleLogout() {
         this.log('Ensuring complete logout...');
+        this.stopPolling();
+
         if (this.chat) {
             this.chat.currentChannel = null;
         }
