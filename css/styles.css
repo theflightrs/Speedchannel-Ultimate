@@ -451,6 +451,15 @@ display: flex;
   opacity: 1;
 }
 
+.channel-user .remove-user {
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 #mainContent {
   flex: 1;
   display: flex;

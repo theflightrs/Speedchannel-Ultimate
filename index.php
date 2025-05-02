@@ -413,10 +413,8 @@ error_log("[INDEX] Security instance created")
 <div id="manageUsersModal" class="modal" hidden>
     <div class="modal-content">
         <div class="modal-header">
-
-        <div class="close" data-action="close-modal">&times;</div>
-        <h2>Channel Users</h2>
-           
+            <div class="close" data-action="close-modal">&times;</div>
+            <h2>Channel Users</h2>
         </div>
         <div class="modal-body">
             <div class="current-users-section">

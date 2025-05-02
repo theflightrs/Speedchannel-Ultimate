@@ -383,7 +383,7 @@ async handleKnockResponse(messageId, accepted) {
                         channel_id: channelId
                     });
                     if (knockResponse.success) {
-                        this.app.ui.showMessage('Knock request sent to channel admin');
+                    //    this.app.ui.showMessage('Knock request sent to channel admin');
                         return; // Stop here - don't try to access the channel
                     }
                 } catch (error) {

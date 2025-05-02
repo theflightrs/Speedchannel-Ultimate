@@ -20,6 +20,14 @@ class ChannelManager {
         return { isAdmin, isCreator, isMember };
     }
 
+     debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
     async loadCurrentUser() {
         try {
             const response = await this.app.api.get('/users.php', { action: 'current' });
@@ -85,9 +93,14 @@ class ChannelManager {
             manageUsersBtn.addEventListener('click', () => {
                 this.app.modalManager.hideAll();
                 this.app.modalManager.openModal('manageUsersModal');
-                this.loadChannelUsers();
+
+                // Use the debounced version of loadChannelUsers
+                if (!this.modalLoaded) {
+                    this.debounce(() => this.loadChannelUsers(), 300)();
+                    this.modalLoaded = true; // Prevent multiple calls
+                }
             });
-        }
+    }
 
        
 
@@ -113,6 +126,32 @@ class ChannelManager {
         });
     } // End of initializeEventListeners
 
+
+    initializeUserEvents() {
+     
+    
+        // Handle "Add User" actions
+        document.querySelectorAll('.add-user').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const userId = e.target.dataset.userId;
+                const action = e.target.dataset.action;
+    
+                if (action === 'add-user') {
+                    await this.app.channels.inviteUserToChannel(userId);
+                } else if (action === 'retract-invite') {
+                    await this.app.channels.retractInvitation(userId);
+                }
+            });
+        });
+
+       
+    }
+
+
+  
+
+    
+    
     updateButtonState(button, isPending) {
         if (!button) return;
         button.textContent = isPending ? 'Pending' : 'Add';
@@ -209,44 +248,83 @@ class ChannelManager {
     async loadChannelUsers() {
         try {
             const response = await this.app.api.get(`/channel_users.php?action=list&channel_id=${this.currentChannel}`);
-            
-            if (response.success && response.data?.available_users) {
+    
+            console.log('loadChannelUsers Response:', response);
+    
+            if (response.success) {
+                // Update Current Users List
+                const currentUsersList = document.getElementById('channelUsersList');
+                if (currentUsersList) {
+                    currentUsersList.innerHTML = response.data.users.map(user => {
+                        const isCreator = user.is_creator; // Check if the user is the creator
+                        const isCurrentUser = user.id === this.app.currentUser?.id; // Check if the user is the current user
+    
+                        // Don't render the remove button for the creator or the current user
+                        const removeButton = (isCreator || isCurrentUser) ? '' : `
+                            <button class="remove-user"
+                                    data-action="remove-user"
+                                    data-user-id="${user.id}">
+                                Remove
+                            </button>
+                        `;
+    
+                        return `
+                            <div class="channel-user" data-user-id="${user.id}">
+                                <div class="user-info">
+                                    <span>${user.username}</span>
+                                    ${user.is_creator ? ' 👑' : ''}
+                                    ${user.is_admin ? ' 🛡️' : ''}
+                                </div>
+                                ${removeButton}
+                            </div>
+                        `;
+                    }).join('');
+                }
+    
+                // Update Available Users List
                 const availableList = document.getElementById('availableUsersList');
                 if (availableList) {
                     availableList.innerHTML = response.data.available_users.map(user => `
-                    <div class="available-user" data-user-id="${user.id}">
-                        <div class="user-info">
-                            <span>${user.username}</span>
-                            ${user.is_admin ? ' 🛡️' : ''}
+                        <div class="available-user" data-user-id="${user.id}">
+                            <div class="user-info">
+                                <span>${user.username}</span>
+                                ${user.is_admin ? ' 🛡️' : ''}
+                            </div>
+                            <button class="add-user ${user.pending ? 'pending-invite' : ''}"
+                                    data-action="${user.pending ? 'retract-invite' : 'add-user'}"
+                                    data-user-id="${user.id}">
+                                ${user.pending ? 'Pending' : 'Add'}
+                            </button>
                         </div>
-                        <button class="add-user ${user.pending ? 'pending-invite' : ''}" 
-                                data-action="${user.pending ? 'retract-invite' : 'add-user'}" 
-                                data-user-id="${user.id}">
-                            ${user.pending ? 'Pending' : 'Add'}
-                        </button>
-                    </div>
-                `).join('');
+                    `).join('');
                 }
             }
         } catch (error) {
+            console.error('Error loading channel users:', error);
             this.app.handleError(error);
         }
     }
 
+    // js/channels.js
     async removeUserFromChannel(userId) {
         try {
-            const response = await this.app.api.post('/channel_users.php', {
+            const response = await this.app.api.post('/channel_users.php', { //Fixed endpoint
                 action: 'remove',
-                channel_id: this.app.chat.currentChannel,
+                channel_id: this.currentChannel,
                 user_id: userId
             });
-
+    
             if (response.success) {
-                await this.loadChannelUsers();
-                this.app.ui.showMessage('User removed from channel');
+                this.app.ui.showSuccess('User removed successfully');
+    
+                // Immediately remove the user's element from the list
+                const userElement = document.querySelector(`#channelUsersList div[data-user-id="${userId}"]`);
+                if (userElement) {
+                    userElement.remove();
+                }
             }
         } catch (error) {
-            this.app.handleError(error);
+            this.app.ui.showError(error.message);
         }
     }
 
@@ -387,7 +465,7 @@ class ChannelManager {
                 });
         
                 if (knockResponse.success) {
-                    this.app.ui.showMessage('Request sent to channel creator');
+                 //   this.app.ui.showMessage('Request sent to channel creator');
                     return;
                 }
             }
@@ -541,7 +619,43 @@ renderInvitationsList(invitations) {
     `).join('') || '<p class="no-invites">No pending invitations</p>';
 }
 
+async pollUserLists() {
+    try {
+        const channelId = this.currentChannel;
+        if (!channelId) return;
 
+        const response = await this.app.api.get(`/channel_users.php?action=list&channel_id=${channelId}`);
+        if (response.success) {
+            const { users, available_users } = response.data;
+
+            // Update current users
+            this.updateUserList('#channelUsersList', users);
+
+            // Update available users
+            this.updateUserList('#availableUsersList', available_users);
+        }
+    } catch (error) {
+        console.error('Error polling user lists:', error);
+    }
+}
+
+
+updateUserList(containerId, users) {
+    const container = document.querySelector(containerId);
+    if (!container) return;
+
+    container.innerHTML = users.map(user => `
+        <div class="channel-user" data-user-id="${user.id}">
+            <span class="user-name">${this.escapeHtml(user.username)}</span>
+            <button class="remove-user" data-action="remove-user" data-user-id="${user.id}">
+                Remove
+            </button>
+        </div>
+    `).join('');
+
+    // Reattach event listeners
+    this.initializeUserEvents();
+}
 
 
     escapeHtml(unsafe) {

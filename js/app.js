@@ -193,6 +193,19 @@ class App {
                         this.modalManager.openModal('confirmDeleteModal');
                         break;
 
+                        case 'remove-user': {
+                            const userId = target.dataset.userId;
+                            if (userId) {
+                                (async () => {
+                                    await this.channels.removeUserFromChannel(userId);
+                                })().catch(error => {
+                                    console.error('Error removing user:', error);
+                                    this.handleError(error);
+                                });
+                            }
+                            e.stopPropagation(); // Stop event from bubbling up
+                            break;
+                        }
                     case 'manual-delete':
                         const deleteMessageId = target.dataset.id;
                         if (deleteMessageId) {

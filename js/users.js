@@ -20,7 +20,7 @@ class UserManager {
                 }
             });
         }
-
+    
         // User search in admin panel
         const userSearchInput = document.getElementById('userSearchInput');
         if (userSearchInput) {
@@ -28,20 +28,22 @@ class UserManager {
                 this.searchUsers(userSearchInput.value);
             }, 300));
         }
-
+    
         // User filters in admin panel
         document.querySelectorAll('#userRole, #userStatus, #sortBy').forEach(select => {
             select.addEventListener('change', () => {
                 this.applyUserFilters();
             });
         });
-
+    
         // Manage users modal
         document.getElementById('manageUsersBtn')?.addEventListener('click', () => {
             this.showManageUsers();
         });
     }
 
+
+    
    async loadUsers() {
     try {
         this.app.log('[Users] Starting loadUsers...');
@@ -89,6 +91,7 @@ clearUsers() {
 }
 
 
+
   clearChannels() {
         console.log("Clearing local channels display.");
         this.channels = [];
@@ -130,17 +133,16 @@ renderUserList() {
 
 
 
-
 async showManageUsers() {
     try {
         const channelId = this.app.channelManager.currentChannel;
         if (!channelId) return;
 
-        // Change the endpoint from channels.php to channel_users.php
         const response = await this.app.api.get(`/channel_users.php?action=list&channel_id=${channelId}`);
         if (response.success) {
             this.updateManageUsersContent(response.users);
             this.app.modalManager.show('manageUsersModal');
+            this.initializeManageUsersEvents(); // Initialize here
         }
     } catch (error) {
         this.app.ui.showError('Failed to load channel users');
@@ -148,21 +150,19 @@ async showManageUsers() {
 }
 
 updateManageUsersContent(users) {
-    const userList = document.querySelector('#manageUsersModal .user-list');
+    const userList = document.querySelector('#channelUsersList');
     if (!userList) return;
-    
+
     userList.innerHTML = users.map(user => `
-        <div class="user-item" data-user-id="${user.id}">
+        <div class="channel-user" data-user-id="${user.id}">
             <span class="user-name">${this.escapeHtml(user.username)}</span>
-            <select class="user-role" data-user-id="${user.id}">
-                <option value="member" ${user.role === 'member' ? 'selected' : ''}>Member</option>
-                <option value="moderator" ${user.role === 'moderator' ? 'selected' : ''}>Moderator</option>
-                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
-            </select>
-            <button class="remove-user" data-user-id="${user.id}">Remove</button>
+            <button class="remove-user" data-action="remove-user" data-user-id="${user.id}">
+                Remove
+            </button>
         </div>
     `).join('');
-    this.initializeUserControls();
+
+    this.initializeRemoveUserEvents();
 }
 
     renderManageUsersModal(users) {
@@ -210,13 +210,7 @@ updateManageUsersContent(users) {
             });
         });
 
-        // Remove user handling
-        modal.querySelectorAll('.remove-user').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const userId = e.target.dataset.userId;
-                await this.removeUserFromChannel(userId);
-            });
-        });
+       
 
         // Add user handling
         const addUserBtn = modal.querySelector('#addUserBtn');
@@ -247,15 +241,20 @@ updateManageUsersContent(users) {
 
     async removeUserFromChannel(userId) {
         try {
-            const response = await this.app.api.post('/channels.php', {
-                action: 'remove_user',
+            const response = await this.app.api.post('/channel_users.php', {
+                action: 'remove',
                 channel_id: this.app.channelManager.currentChannel,
                 user_id: userId
             });
-
+    
             if (response.success) {
                 this.app.ui.showSuccess('User removed from channel');
-                await this.showManageUsers(); // Refresh the modal
+    
+                // Manually remove the user's element from the list
+                const userItem = document.querySelector(`.channel-user[data-user-id="${userId}"]`);
+                if (userItem) {
+                    userItem.remove();
+                }
             }
         } catch (error) {
             this.app.ui.showError(error.message);

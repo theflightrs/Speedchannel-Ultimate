@@ -13,6 +13,9 @@ class ModalManager {
         this.activeModals.add(modalId);
         
         modal.style.zIndex = 1000 + this.activeModals.size;
+        if (modalId === 'manageUsersModal') {
+            this.app.channels.pollUserLists(); // Start polling when the modal is shown
+        }
     }
 
     hide(modalId) {
@@ -24,6 +27,9 @@ class ModalManager {
         
         if (this.activeModals.size === 0) {
             this.modalContainer.hidden = true;
+        }
+        if (modalId === 'manageUsersModal') {
+            clearInterval(this.pollingInterval); // Stop polling when the modal is hidden
         }
     }
 

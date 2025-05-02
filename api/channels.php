@@ -128,7 +128,47 @@ try {
         throw new Exception('Failed to delete channel: ' . $e->getMessage());
     }
     break;
-		
+    case 'remove-user':
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405); // Method Not Allowed
+            throw new Exception('Invalid request method for remove-user action.');
+        }
+    
+        $channelId = $data['channel_id'] ?? null;
+        $userId = $data['user_id'] ?? null;
+    
+        if (!$channelId || !$userId) {
+            throw new Exception('Channel ID and User ID are required.');
+        }
+    
+        // Check permissions
+        $channel = $db->fetchOne(
+            "SELECT creator_id FROM channels WHERE id = ?",
+            [$channelId]
+        );
+    
+        if (!$channel || ($channel['creator_id'] != $_SESSION['user_id'] && !$_SESSION['is_admin'])) {
+            http_response_code(403); // Forbidden
+            throw new Exception('Permission denied.');
+        }
+    
+        // Prevent removing the channel creator
+        if ($userId == $channel['creator_id']) {
+            throw new Exception('Cannot remove the channel creator.');
+        }
+    
+        // Remove user from channel
+        $result = $db->delete(
+            "DELETE FROM channel_users WHERE channel_id = ? AND user_id = ?",
+            [$channelId, $userId]
+        );
+    
+        if (!$result) {
+            throw new Exception('Failed to remove user from the channel.');
+        }
+    
+        echo json_encode(['success' => true]);
+        break;
 		
         default:
             http_response_code(400); // Bad Request
