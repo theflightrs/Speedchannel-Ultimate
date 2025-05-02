@@ -182,7 +182,7 @@ class App {
                         break;
 
                     case 'attach-file':
-                        this.fileManager.triggerFileInput();
+                 
                         break;
 
                     case 'send-message':

@@ -249,43 +249,76 @@ try {
             sendMessage();
             break;
 
-            case 'DELETE':
-                $action = $_GET['action'] ?? null;
-            
-                if ($action === 'deleteOld') {
-                    // Automatic deletion of old messages
-                    $age = 30; // Example: Messages older than 30 days
-                    $db->delete(
-                        "DELETE FROM messages WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)", 
-                        [$age]
-                    );
-                    echo json_encode(['success' => true, 'message' => 'Old messages deleted']);
-                    exit;
-                }
-            
-                // Manual deletion by ID
-                $messageId = $_GET['id'] ?? null;
-                if (!$messageId) {
-                    throw new Exception('Message ID is required', 400);
-                }
-            
-                // Verify user permissions
-                $message = $db->fetchOne(
-                    "SELECT sender_id FROM messages WHERE id = ?",
-                    [$messageId]
-                );
-            
-                if (!$message) {
-                    throw new Exception('Message not found', 404);
-                }
-            
-                if ($message['sender_id'] !== $_SESSION['user_id'] && !$_SESSION['is_admin']) {
-                    throw new Exception('Permission denied', 403);
-                }
-            
-                $db->delete("DELETE FROM messages WHERE id = ?", [$messageId]);
-                echo json_encode(['success' => true, 'message' => 'Message deleted']);
-                break;
+            // In the DELETE case of your switch statement
+case 'DELETE':
+    $action = $_GET['action'] ?? null;
+
+    if ($action === 'deleteOld') {
+        // Existing old message deletion logic
+        $age = 30;
+        // First get files for old messages
+        $oldFiles = $db->fetchAll(
+            "SELECT f.stored_name FROM files f 
+             JOIN messages m ON f.message_id = m.id 
+             WHERE m.created_at < DATE_SUB(NOW(), INTERVAL ? DAY)",
+            [$age]
+        );
+        
+        // Delete physical files
+        foreach ($oldFiles as $file) {
+            $filepath = __DIR__ . '/../uploads/' . $file['stored_name'];
+            if (file_exists($filepath)) {
+                unlink($filepath);
+            }
+        }
+        
+        // Then delete messages (will cascade to files table)
+        $db->delete(
+            "DELETE FROM messages WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)", 
+            [$age]
+        );
+        echo json_encode(['success' => true, 'message' => 'Old messages deleted']);
+        exit;
+    }
+
+    // Manual deletion by ID
+    $messageId = $_GET['id'] ?? null;
+    if (!$messageId) {
+        throw new Exception('Message ID is required', 400);
+    }
+
+    // Get files before deleting message
+    $files = $db->fetchAll(
+        "SELECT stored_name FROM files WHERE message_id = ?",
+        [$messageId]
+    );
+
+    // Verify user permissions
+    $message = $db->fetchOne(
+        "SELECT sender_id FROM messages WHERE id = ?",
+        [$messageId]
+    );
+
+    if (!$message) {
+        throw new Exception('Message not found', 404);
+    }
+
+    if ($message['sender_id'] !== $_SESSION['user_id'] && !$_SESSION['is_admin']) {
+        throw new Exception('Permission denied', 403);
+    }
+
+    // Delete physical files
+    foreach ($files as $file) {
+        $filepath = __DIR__ . '/../uploads/' . $file['stored_name'];
+        if (file_exists($filepath)) {
+            unlink($filepath);
+        }
+    }
+
+    // Delete message (will cascade to files table)
+    $db->delete("DELETE FROM messages WHERE id = ?", [$messageId]);
+    echo json_encode(['success' => true, 'message' => 'Message deleted']);
+    break;
 
         default:
             throw new Exception('Invalid request method');

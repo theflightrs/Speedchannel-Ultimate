@@ -732,8 +732,8 @@ padding: 20px;
 
 .message-files img {
   width: 100%;
-  height: 200px; /* Fixed height for consistency */
-  object-fit: cover; /* Maintains aspect ratio while covering area */
+  height: 100%;
+  object-fit: fill;
   border-radius: 4px;
   cursor: pointer;
   transition: transform 0.2s;

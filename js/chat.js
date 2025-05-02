@@ -308,7 +308,6 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
                 this.pollingInterval = setTimeout(poll, this.SLOW_POLL_RATE);
                 return;
             }
-            
             await this.checkNewMessages(channelId);
             const timeSinceActivity = Date.now() - this.lastActivityTime;
             const nextPollRate = timeSinceActivity < this.ACTIVE_DURATION 
@@ -454,7 +453,7 @@ async handleKnockResponse(messageId, accepted) {
     
             messageInput.value = '';
             this.app.fileManager.clearAttachments();
-            await this.loadMessages(this.currentChannel);
+           // await this.loadMessages(this.currentChannel);
         } catch (error) {
             console.error('Error sending message:', error);
             this.app.ui.showError('Failed to send message');
