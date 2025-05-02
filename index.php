@@ -231,17 +231,14 @@ error_log("[INDEX] Security instance created")
 
 
 
-                <div class="spinnercontainer">
+        <div class="spinnercontainer">
              <div class="spinner">
              <div></div>
              <div></div>
              <div></div>
              <div></div>
              <div></div>
-</div>
-
-
-
+        </div>
 
 
 
@@ -453,5 +450,14 @@ error_log("[INDEX] Security instance created")
    
   
 </div>
+
+<div class="lightbox" style="display: none;">
+    <div class="lightbox-overlay"></div>
+    <div class="lightbox-content">
+        <img src="" alt="">
+        <button class="lightbox-close">×</button>
+    </div>
+</div>
+
 </body>
 </html>

@@ -82,11 +82,7 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
     }
 });
 
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('message-image')) {
-        this.app.lightbox.show(e.target.dataset.fullsize);
-    }
-});
+
 
       
 // End of EventListeners
@@ -164,7 +160,9 @@ document.addEventListener('click', (e) => {
         
         if (isImage) {
             const imgPath = `./api/files.php?path=${encodeURIComponent(file.stored_name)}`;
-            return `<img src="${imgPath}" class="message-image" data-fullsize="${imgPath}">`;
+            return `<img src="${imgPath}" 
+                        class="message-image" 
+                        data-action="open-lightbox">`;  // Added data-action
         } else {
             return `
                 <div class="file-icon" data-file-id="${file.id}" 

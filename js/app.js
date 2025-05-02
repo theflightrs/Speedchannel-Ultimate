@@ -18,11 +18,12 @@ class App {
             this.currentUser = null;
             this.auth = new Auth(this);
             this.channels = new ChannelManager(this);
+            this.lightbox = new Lightbox();
             this.chat = new Chat(this);
             this.userManager = new UserManager(this);
             this.fileManager = new FileManager(this);
             this.modalManager = new ModalManager();
-            this.lightbox = new Lightbox();
+
 
             this.log('Application initialized successfully');
 
@@ -169,7 +170,12 @@ class App {
                             this.modalManager.openModal(modalId);
                         }
                         break;
-
+                        case 'open-lightbox':
+                            const imgSrc = target.getAttribute('src');
+                            if (imgSrc && this.lightbox) {
+                                this.lightbox.show(imgSrc);
+                            }
+                            break;
                     case 'create-channel':
                         this.modalManager.hideAll();
                         this.modalManager.openModal('createChannelModal');
