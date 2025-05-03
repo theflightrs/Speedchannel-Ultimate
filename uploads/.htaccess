@@ -1,0 +1,12 @@
+# Prevent script execution in uploads directory
+Options -ExecCGI
+AddHandler cgi-script .php .php3 .php4 .php5 .php7 .phtml .pl .py .jsp .asp .htm .html .shtml .sh .cgi
+
+# Prevent directory listing
+Options -Indexes
+
+# Only allow specific file types
+<FilesMatch "\.(?i:jpe?g|png|gif|pdf|txt)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
