@@ -48,6 +48,25 @@ class AuthState {
         if (isAuthenticated) {
             document.getElementById('currentChannelTitle').textContent = 'No channel selected';
             document.getElementById('channelInfo').hidden = false;
+            
+            // Ensure myAuth is hidden and chat interface is displayed
+            const myAuth = document.querySelector('.myAuth');
+            if (myAuth) myAuth.hidden = true;
+            
+            // Show chat interface and sidebar
+            const chatInterface = document.getElementById('chatInterface');
+            const sidebar = document.getElementById('sidebar');
+            if (chatInterface) chatInterface.style.display = 'block';
+            if (sidebar) sidebar.style.display = 'block';
+        } else {
+            // Show myAuth, hide chat interface and sidebar
+            const myAuth = document.querySelector('.myAuth');
+            if (myAuth) myAuth.hidden = false;
+            
+            const chatInterface = document.getElementById('chatInterface');
+            const sidebar = document.getElementById('sidebar');
+            if (chatInterface) chatInterface.style.display = 'none';
+            if (sidebar) sidebar.style.display = 'none';
         }
         
         this._notifyListeners();

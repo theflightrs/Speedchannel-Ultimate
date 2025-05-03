@@ -139,12 +139,20 @@
         }
     }
 
-    toggleAuthForm(form) {
-        document.getElementById('loginForm').hidden = form === 'register';
-        document.getElementById('registerForm').hidden = form === 'login';
-        document.getElementById('loginError').hidden = true;
-        document.getElementById('registerError').hidden = true;
-    }
+   // Replace only this method in AuthState.js
+toggleAuthForm(form) {
+    // Get the form elements directly
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    
+    // Toggle hidden attribute directly (how it was working before)
+    loginForm.hidden = (form === 'register');
+    registerForm.hidden = (form === 'login');
+    
+    // Clear error messages
+    document.getElementById('loginError').hidden = true;
+    document.getElementById('registerError').hidden = true;
+}
 }
 
 export default Auth;

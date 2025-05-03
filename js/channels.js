@@ -485,7 +485,7 @@ class ChannelManager {
                 }
             }
 
-            document.getElementById("messageInputArea").style.display = "block";
+            document.getElementById("messageInputArea").style.display = "flex";
             this.app.modalManager.hideAll();
             this.currentChannel = channel.id;
             this.app.chat.currentChannel = channel.id;
