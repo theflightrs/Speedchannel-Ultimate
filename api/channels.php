@@ -1,14 +1,11 @@
 <?php
 
-define('SECURE_ENTRY', true);  // Add this first
-// Add these after session_start()
+define('SECURE_ENTRY', true);
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_secure', 1);
 ini_set('session.use_only_cookies', 1);
 
-// Then headers
 header('Content-Type: application/json');
-// Then requires
 require_once(__DIR__ . '/../config.php');
 require_once(__DIR__ . '/../Security.php'); // Assuming Security.php exists and handles security checks
 require_once(__DIR__ . '/../db_setup.php'); // Assuming db_setup.php provides the Database class/instance
@@ -88,46 +85,63 @@ try {
 			
         // Add cases for 'update', 'delete', 'join', 'leave', 'settings' etc. as needed
 		case 'delete':
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        throw new Exception('Invalid request method for delete action.');
-    }
-    
-    $channelId = $data['channel_id'] ?? null;
-    if (!$channelId) {
-        throw new Exception('Channel ID is required.');
-    }
-    
-    // Check permissions
-    $channel = $db->fetchOne(
-        "SELECT creator_id FROM channels WHERE id = ?",
-        [$channelId]
-    );
-    
-    if (!$channel || ($channel['creator_id'] != $userId && !$_SESSION['is_admin'])) {
-        http_response_code(403);
-        throw new Exception('Permission denied');
-    }
-    
-    try {
-        $db->beginTransaction();
-        
-        // Delete messages first (due to foreign key constraints)
-        $db->delete("DELETE FROM messages WHERE channel_id = ?", [$channelId]);
-        
-        // Delete channel users
-        $db->delete("DELETE FROM channel_users WHERE channel_id = ?", [$channelId]);
-        
-        // Delete the channel
-        $db->delete("DELETE FROM channels WHERE id = ?", [$channelId]);
-        
-        $db->commit();
-        $result = ['success' => true];
-    } catch (Exception $e) {
-        $db->rollBack();
-        throw new Exception('Failed to delete channel: ' . $e->getMessage());
-    }
-    break;
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                throw new Exception('Invalid request method for delete action.');
+            }
+            
+            $channelId = $data['channel_id'] ?? null;
+            if (!$channelId) {
+                throw new Exception('Channel ID is required.');
+            }
+            
+            // Check permissions
+            $channel = $db->fetchOne(
+                "SELECT creator_id FROM channels WHERE id = ?",
+                [$channelId]
+            );
+            
+            if (!$channel || ($channel['creator_id'] != $userId && !$_SESSION['is_admin'])) {
+                http_response_code(403);
+                throw new Exception('Permission denied');
+            }
+            
+            try {
+                $db->beginTransaction();
+                
+                // First get all files that need to be deleted
+                $files = $db->fetchAll(
+                    "SELECT f.stored_name 
+                     FROM files f 
+                     JOIN messages m ON f.message_id = m.id 
+                     WHERE m.channel_id = ?",
+                    [$channelId]
+                );
+                
+                // Delete physical files
+                foreach ($files as $file) {
+                    $filepath = __DIR__ . '/../uploads/' . $file['stored_name'];
+                    if (file_exists($filepath)) {
+                        unlink($filepath);
+                    }
+                }
+                
+                // Delete messages (will cascade delete files from database)
+                $db->delete("DELETE FROM messages WHERE channel_id = ?", [$channelId]);
+                
+                // Delete channel users
+                $db->delete("DELETE FROM channel_users WHERE channel_id = ?", [$channelId]);
+                
+                // Delete the channel
+                $db->delete("DELETE FROM channels WHERE id = ?", [$channelId]);
+                
+                $db->commit();
+                $result = ['success' => true];
+            } catch (Exception $e) {
+                $db->rollBack();
+                throw new Exception('Failed to delete channel: ' . $e->getMessage());
+            }
+            break;
     case 'remove-user':
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405); // Method Not Allowed
