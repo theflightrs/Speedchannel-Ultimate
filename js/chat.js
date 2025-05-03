@@ -184,7 +184,6 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
     }
 
 
-    // Add this method to the Chat class
 initializeImageObserver() {
     this.imageObserver = new IntersectionObserver((entries, observer) => {
         entries.forEach(entry => {

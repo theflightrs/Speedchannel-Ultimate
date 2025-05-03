@@ -242,7 +242,7 @@ function handleListChannels($db, $userId) {
 
     $channels = $db->fetchAll($query, [$userId, $userId, $userId, $isAdmin, $userId]);
     
-    // Add ETag support
+    // ETag support
     $etag = md5(json_encode($channels));
     header('ETag: ' . $etag);
 

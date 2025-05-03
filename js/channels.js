@@ -20,7 +20,7 @@ class ChannelManager {
 
 
         this.initializeEventListeners();
-        this.initializeInvitationEvents(); // Add this line
+        this.initializeInvitationEvents();
 
       //  if (autoload) {
       //      setInterval(() => this.loadPendingInvitations(), 1000);

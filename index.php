@@ -268,7 +268,6 @@ error_log("[INDEX] Security instance created")
  <!-- Login Form -->
  <div id="loginForm" class="auth-form" >
             <h2>Login</h2>
-            <!-- Fixed the parsing error by removing onsubmit attribute -->
             <form id="loginFormElement">
                 <div class="form-group">
                     <label for="loginUsername">Username</label>
@@ -288,7 +287,6 @@ error_log("[INDEX] Security instance created")
         <div id="registerForm" class="auth-form" hidden>
     
             <h2>Register</h2>
-            <!-- Fixed the parsing error by removing onsubmit attribute -->
             <form id="registerFormElement">
                 <div class="form-group">
                     <label for="registerUsername">Username</label>

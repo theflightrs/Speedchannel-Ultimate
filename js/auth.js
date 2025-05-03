@@ -53,7 +53,7 @@
 
             if (response.success && response.user) {
                 this.user = response.user;
-                this.app.currentUser = response.user;  // Add this line
+                this.app.currentUser = response.user;
                 this.authState.setAuthState(true);
                 document.getElementById('userDisplay').textContent = response.user.username;
                 await this.app.userManager.loadUsers();

@@ -81,7 +81,7 @@ class UI {
             'sidebar': isAuthenticated,
             'chatInterface': isAuthenticated,
             'loginForm': !isAuthenticated,
-            'modalContainer': !isAuthenticated // Add this line to properly hide modalContainer
+            'modalContainer': !isAuthenticated
         };
 
         Object.entries(elements).forEach(([id, visible]) => {

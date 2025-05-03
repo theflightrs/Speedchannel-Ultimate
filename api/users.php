@@ -1,5 +1,5 @@
 <?php
-define('SECURE_ENTRY', true);  // Add this first
+define('SECURE_ENTRY', true); 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
