@@ -1,0 +1,25 @@
+# Order Allow, Deny
+# Allow from All
+
+RewriteEngine On
+RewriteBase /
+
+# HTTPS by default
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteRule ^api/ - [L]
+
+# Prevent direct access to sensitive files
+ RewriteRule ^(config\.php|Security\.php|db_setup\.php) - [F,L]
+
+# Redirect all API requests to the correct files
+ RewriteRule ^api/([^/]+)$ api/$1.php [L]
+ RewriteRule ^api/(.+)$ api/$1.php [L,QSA]
+
+# Allow direct access to js, css, and uploads directories
+RewriteRule ^(js|css|uploads)/ - [L]
+
+# Security headers
+Header set X-Content-Type-Options "nosniff"
+Header set X-Frame-Options "ALLOW"
+Header set X-XSS-Protection "1; mode=block"
