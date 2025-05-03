@@ -20,7 +20,28 @@ class Chat {
 
         this.lastActivityTime = 0;
 		this.addMessageToDisplay = this.addMessageToDisplay.bind(this);
-    }
+
+        this.imageLoadQueue = [];
+    this.isProcessingImageQueue = false;
+    
+    this.imageObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                if (img.dataset.src) {
+                    this.imageLoadQueue.push(img);
+                    this.imageObserver.unobserve(img);
+                    if (!this.isProcessingImageQueue) {
+                        this.processImageQueue();
+                    }
+                }
+            }
+        });
+    }, {
+        root: document.getElementById('messageDisplay'),
+        rootMargin: '50px'
+    });
+}
 
     async init() {
         this.initializeEventListeners();
@@ -108,7 +129,7 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
     }
 
     addMessageToDisplay(message) {
-        // Keep your existing system message handling
+        // Keep system message handling
         if (message.type === 'invitation' || (message.is_system && !message.encrypted_content)) {
             return;
         }
@@ -118,7 +139,7 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
         const messageDiv = document.createElement('div');
         messageDiv.className = message.is_system ? 'message system-message' : 'message';
     
-        // Handle knock requests (no JSON parsing needed)
+        // Handle knock requests
         if (message.is_system && message.content.includes('is requesting to join')) {
             this.handleKnockMessage(message, messageDiv, messageDisplay);
             return;
@@ -136,7 +157,7 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
         <div class="message-files">
             ${message.files.map(file => this.getFileDisplay(file)).join('')}
         </div>
-         ` : '';
+        ` : '';
     
         // Regular message handling with files
         messageDiv.innerHTML = `
@@ -150,39 +171,74 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
         `;
         
         messageDisplay.appendChild(messageDiv);
+    
+        // Initialize lazy loading for new images
+        const lazyImages = messageDiv.querySelectorAll('img[data-src]');
+        lazyImages.forEach(img => {
+            if (this.imageObserver) {
+                this.imageObserver.observe(img);
+            }
+        });
+    
         messageDisplay.scrollTop = messageDisplay.scrollHeight;
     }
 
-    getFileDisplay(file) {
-        if (!file) return '';
+
+    // Add this method to the Chat class
+initializeImageObserver() {
+    this.imageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                if (img.dataset.src) {
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                    observer.unobserve(img);
+                }
+            }
+        });
+    }, {
+        root: document.getElementById('messageDisplay'),
+        rootMargin: '50px',
+        threshold: 0.1
+    });
+}
+
+
+getFileDisplay(file) {
+    if (!file) return '';
+
+    const isImage = file.mime_type?.startsWith('image/');
     
-        const isImage = file.mime_type?.startsWith('image/');
-        
-        if (isImage) {
-            const imgPath = `./api/files.php?path=${encodeURIComponent(file.stored_name)}`;
-            return `<img src="${imgPath}" 
-                        class="message-image" 
-                        data-action="open-lightbox">`;  // Added data-action
-        } else {
-            return `
-                <div class="file-icon" data-file-id="${file.id}" 
-                     onclick="app.modalManager.show({
-                         title: 'Download File',
-                         content: 'Do you want to download \"${this.escapeHtml(file.original_name)}\"?',
-                         buttons: [{
-                             text: 'Download',
-                             class: 'primary',
-                             callback: () => window.location.href = './api/files.php?action=download&id=${file.id}'
-                         }, {
-                             text: 'Cancel',
-                             class: 'secondary'
-                         }]
-                     })">
-                    <span class="icon">${this.getFileIcon(file.mime_type)}</span>
-                    <span class="filename">${this.escapeHtml(file.original_name)}</span>
-                </div>`;
-        }
+    if (isImage) {
+        const imgPath = `./api/files.php?path=${encodeURIComponent(file.stored_name)}`;
+        // Use data-src for lazy loading
+        return `<img 
+            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+            data-src="${imgPath}"
+            class="message-image lazy" 
+            onclick="app.chat.showLightbox('${file.stored_name}')"
+            data-action="open-lightbox">`;
+    } else {
+        return `
+            <div class="file-icon" data-file-id="${file.id}" 
+                 onclick="app.modalManager.show({
+                     title: 'Download File',
+                     content: 'Do you want to download \"${this.escapeHtml(file.original_name)}\"?',
+                     buttons: [{
+                         text: 'Download',
+                         class: 'primary',
+                         callback: () => window.location.href = './api/files.php?action=download&id=${file.id}'
+                     }, {
+                         text: 'Cancel',
+                         class: 'secondary'
+                     }]
+                 })">
+                <span class="icon">${this.getFileIcon(file.mime_type)}</span>
+                <span class="filename">${this.escapeHtml(file.original_name)}</span>
+            </div>`;
     }
+}
 
 
     getFileIcon(mimeType) {
@@ -225,9 +281,10 @@ document.getElementById('confirmDeleteBtn').addEventListener('click', async (eve
         };
         return Object.entries(icons).find(([key]) => mimeType?.startsWith(key))?.[1] || '📎';
     }
+
 
     showLightbox(storedName) {
-        this.modalManager.show({
+        this.app.modalManager.show({
             title: '',
             content: `<div class="lightbox-image"><img src="./api/files.php?path=${storedName}"></div>`,
             size: 'large'
@@ -381,9 +438,28 @@ async handleKnockResponse(messageId, accepted) {
    
     }
 
+    async processImageQueue() {
+        if (this.isProcessingImageQueue || this.imageLoadQueue.length === 0) return;
+        
+        this.isProcessingImageQueue = true;
+        
+        while (this.imageLoadQueue.length > 0) {
+            const img = this.imageLoadQueue.shift();
+            if (img && img.dataset.src) {
+                img.src = img.dataset.src;
+                img.removeAttribute('data-src');
+                // Wait 100ms between each image load
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        }
+        
+        this.isProcessingImageQueue = false;
+    }
 
-    
     async sendMessage() {
+        const sendButton = document.getElementById('sendMessageBtn');
+        if (sendButton.disabled) return; // Prevent double submission
+        
         if (!this.currentChannel || !this.app.currentUser) {
             this.app.ui.showError("Please select a channel and ensure you're logged in");
             return;
@@ -404,6 +480,9 @@ async handleKnockResponse(messageId, accepted) {
         }
     
         try {
+            // Disable the send button
+            sendButton.disabled = true;
+    
             this.messageQueue.push({
                 channel_id: this.currentChannel,
                 content: content,
@@ -425,14 +504,20 @@ async handleKnockResponse(messageId, accepted) {
     
             messageInput.value = '';
             this.app.fileManager.clearAttachments();
-           // await this.loadMessages(this.currentChannel);
         } catch (error) {
             console.error('Error sending message:', error);
             this.app.ui.showError('Failed to send message');
         } finally {
+            await this.loadMessages(this.currentChannel);
             setTimeout(() => this.messageQueue.shift(), 1000);
+            // Re-enable the send button after 1 second
+            setTimeout(() => {
+                sendButton.disabled = false;
+            }, 1000);
         }
     }
+
+
     async switchChannel(channelId) {
     console.log(`Switching to channel ${channelId}`);
     if (!channelId) return;

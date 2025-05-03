@@ -80,11 +80,6 @@ try {
                 $storedName = basename($_GET['path']);
                 $path = UPLOAD_DIR . $storedName;
             
-                error_log("Serving file: $path");
-                error_log("File exists: " . (file_exists($path) ? 'yes' : 'no'));
-                error_log("File size: " . (file_exists($path) ? filesize($path) : 'n/a'));
-                error_log("Mime type: " . (file_exists($path) ? mime_content_type($path) : 'n/a'));
-            
                 if (!file_exists($path)) {
                     throw new Exception("File not found: $path");
                 }
@@ -98,8 +93,8 @@ try {
                 header('Content-Length: ' . filesize($path));
                 header('X-Content-Type-Options: nosniff');
                 
-                ob_clean(); // Clear output buffer
-                flush(); // Flush system output buffer
+                ob_clean();
+                flush();
                 readfile($path);
                 exit;
 
@@ -107,7 +102,7 @@ try {
             throw new Exception('Invalid request method');
     }
 } catch (Exception $e) {
-    http_response_code(400);
+    http_response_code(500);
     echo json_encode([
         'success' => false,
         'error' => $e->getMessage()
