@@ -23,10 +23,11 @@ class UserManager {
     
         // User search in admin panel
         const userSearchInput = document.getElementById('userSearchInput');
-        if (userSearchInput) {
-            userSearchInput.addEventListener('input', this.debounce(() => {
-                this.searchUsers(userSearchInput.value);
-            }, 300));
+    if (userSearchInput) {
+        userSearchInput.addEventListener('input', this.debounce(() => {
+            // Call the admin panel's search function instead
+            this.app.admin.searchUsers();
+        }, 300));
         }
     
         // User filters in admin panel

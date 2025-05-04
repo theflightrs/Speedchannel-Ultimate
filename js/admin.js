@@ -4,10 +4,16 @@ import Api from './api.js';
 class AdminPanel {
     constructor(app) {
         this.app = app;
+        this.app.admin = this;
         this.api = app.api;
         this.currentTab = 'features';
         this.refreshInterval = null;
 
+        this.searchUsers = this.searchUsers.bind(this);
+        this.loadSessions = this.loadSessions.bind(this);
+        this.loadLogs = this.loadLogs.bind(this);
+
+        window.adminSearchUsers = this.searchUsers;
 
         document.addEventListener('click', (e) => {
             console.log('Click detected on:', e.target);
@@ -54,11 +60,8 @@ class AdminPanel {
         
         document.getElementById('sessionSort')?.addEventListener('change', 
             () => this.loadSessions()
-        );
-    
-        document.getElementById('userSearchInput')?.addEventListener('input',
-            Utils.debounce(() => this.searchUsers(), 300)
-        );
+        );  
+       
     
         ['userRole', 'userStatus', 'sortBy'].forEach(id => {
             document.getElementById(id)?.addEventListener('change', () => this.searchUsers());
@@ -67,7 +70,16 @@ class AdminPanel {
         ['logDate', 'logType', 'logSeverity'].forEach(id => {
             document.getElementById(id)?.addEventListener('change', () => this.loadLogs());
         });
+
+        document.getElementById('userSearchInput')?.addEventListener('input',
+        Utils.debounce(() => window.adminSearchUsers(), 300)
+    );
+
+    
+        
     }
+
+    
 
     show() {
         this.loadInitialData();
@@ -232,38 +244,48 @@ async loadFeatures() {
             Utils.showError('adminError', 'Failed to terminate session');
         }
     }
+
     async searchUsers() {
         try {
-            const response = await this.app.api.get('user_search.php', {
-                q: document.getElementById('userSearchInput')?.value || '',
+            const params = new URLSearchParams({
+                q: document.getElementById('userSearchInput')?.value?.trim() || '',
                 role: document.getElementById('userRole')?.value || '',
                 status: document.getElementById('userStatus')?.value || '',
                 sort: document.getElementById('sortBy')?.value || 'username'
             });
     
+            const response = await this.app.api.get(`user_search.php?${params.toString()}`);
             if (!response.success) throw new Error(response.message);
             
             const resultsDiv = document.getElementById('userSearchResults');
             if (resultsDiv && response.data?.users) {
-                resultsDiv.innerHTML = response.data.users.map(user => `
-                    <div class="channel-user" data-user-id="${user.id}">
-                        <div class="user-info">
-                            <span>${user.username}</span>
-                            ${user.is_admin ? ' 👑' : ''}
+                resultsDiv.innerHTML = response.data.users.map(user => {
+                    const isCurrentUser = user.id === this.app.currentUser?.id;
+                    
+                    return `
+                        <div class="channel-user" data-user-id="${user.id}">
+                            <div class="user-info">
+                                <span>${this.escapeHtml(user.username)}</span>
+                                ${user.is_admin ? ' 🛡️' : ''}
+                            </div>
+                            ${!isCurrentUser ? `
+                                <button class="remove-user"
+                                        data-action="toggle-status"
+                                        data-user-id="${user.id}">
+                                    ${user.is_active ? 'Deactivate' : 'Activate'}
+                                </button>
+                            ` : ''}
                         </div>
-                        <button class="remove-user" 
-                                data-action="ban-user" 
-                                data-user-id="${user.id}">
-                            ${user.is_active ? 'Ban' : 'Unban'}
-                        </button>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             }
         } catch (error) {
             console.error('Failed to search users:', error);
             this.app.ui.showError('Failed to search users');
         }
     }
+
+
     
     async loadLogs() {
         const logsDiv = document.getElementById('activityLogs');
