@@ -93,22 +93,20 @@ class AdminPanel {
         }
     }
 
-
-  switchTab(tabName) {
-    console.log('Switching to tab:', tabName); // Debug helper
+    switchTab(tabName) {
+        console.log('Switching to tab:', tabName);
+        
+        // Update current tab
+        this.currentTab = tabName;
+        
+        // Only target admin panel tab content
+        document.querySelectorAll('.admin-panel .tab-content').forEach(content => {
+            content.hidden = content.id !== `${tabName}Tab`;
+        });
     
-    // Update current tab
-    this.currentTab = tabName;
-    
-
-    // Show/hide tab content sections
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.hidden = content.id !== `${tabName}Tab`;
-    });
-
-    // Load tab data
-    this.loadTabData(tabName);
-}
+        // Load tab data
+        this.loadTabData(tabName);
+    }
 
 async loadFeatures() {
     try {
@@ -235,22 +233,35 @@ async loadFeatures() {
 
     async searchUsers() {
         try {
-            const response = await this.app.api.get('/user_search.php', {
+            const response = await this.app.api.get('user_search.php', {
                 q: document.getElementById('userSearchInput')?.value || '',
                 role: document.getElementById('userRole')?.value || '',
                 status: document.getElementById('userStatus')?.value || '',
                 sort: document.getElementById('sortBy')?.value || 'username'
             });
     
-            if (!response.success) throw new Error(response.message || 'Failed to search users');
+            if (!response.success) throw new Error(response.message);
             
             const resultsDiv = document.getElementById('userSearchResults');
             if (resultsDiv && response.data?.users) {
                 resultsDiv.innerHTML = response.data.users.map(user => `
-                    <div class="user-card">
-                        <span class="username">${this.escapeHtml(user.username)}</span>
-                        ${user.is_admin ? '<span class="badge admin">Admin</span>' : ''}
-                        <span class="last-login">Last login: ${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</span>
+                    <div class="user-list-item">
+                        <div class="user-info">
+                            <div class="user-primary">
+                                ${user.username}
+                                ${user.is_admin ? ' 👑' : ''}
+                            </div>
+                            <div class="user-secondary">
+                                Last login: ${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
+                                · Created: ${new Date(user.created_at).toLocaleString()}
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn btn-small ${user.is_active ? 'btn-danger' : 'btn-success'}" 
+                                    data-userid="${user.id}">
+                                ${user.is_active ? 'Ban' : 'Unban'}
+                            </button>
+                        </div>
                     </div>
                 `).join('');
             }

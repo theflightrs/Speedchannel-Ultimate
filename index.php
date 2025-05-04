@@ -95,12 +95,12 @@ error_log("[INDEX] Security instance created")
   
 
                 </div>
-            </div>
+          
   
        
 
         <!-- Main Chat Interface -->
-        <div id="chatInterface">
+<div id="chatInterface">
          
  
             <!-- Main Content -->
@@ -125,7 +125,7 @@ error_log("[INDEX] Security instance created")
         <button class="accept">Accept</button>
         <button class="decline">Decline</button>
     </div>
-</template>
+   </template>
 
                 <!-- Message Display -->
                 <div id="messageDisplay">
@@ -139,11 +139,8 @@ error_log("[INDEX] Security instance created")
              <div></div>
              <div></div>
              <div></div>
+             </div>
         </div>
-
-
-
-                </div>
 
     </div>        
             <div id="attachmentPreview" class="preview"></div>
@@ -159,7 +156,7 @@ error_log("[INDEX] Security instance created")
                     </div>
                 </div>
             </div>
-        </div>
+</div>
 
 
 <div class="myAuth"  <?php echo $security->isAuthenticated() ? 'hidden' : ''; ?>>
@@ -475,7 +472,7 @@ error_log("[INDEX] Security instance created")
 
    
   
-</div>
+
 
 <div class="lightbox" style="display: none;">
     <div class="lightbox-overlay"></div>
