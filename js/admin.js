@@ -170,7 +170,7 @@ async loadFeatures() {
 
     async updateFeatureState({ id, checked }) {
         try {
-            const response = await this.app.api.post('/settings.php', { 
+            const response = await this.app.api.post('/settings.php', { // Instead of '/settings.php'
                 action: 'update_feature',
                 feature: id,
                 enabled: checked
@@ -232,7 +232,6 @@ async loadFeatures() {
             Utils.showError('adminError', 'Failed to terminate session');
         }
     }
-
     async searchUsers() {
         try {
             const response = await this.app.api.get('user_search.php', {
@@ -247,23 +246,16 @@ async loadFeatures() {
             const resultsDiv = document.getElementById('userSearchResults');
             if (resultsDiv && response.data?.users) {
                 resultsDiv.innerHTML = response.data.users.map(user => `
-                    <div class="user-list-item">
+                    <div class="channel-user" data-user-id="${user.id}">
                         <div class="user-info">
-                            <div class="user-primary">
-                                ${user.username}
-                                ${user.is_admin ? ' 👑' : ''}
-                            </div>
-                            <div class="user-secondary">
-                                Last login: ${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}
-                                · Created: ${new Date(user.created_at).toLocaleString()}
-                            </div>
+                            <span>${user.username}</span>
+                            ${user.is_admin ? ' 👑' : ''}
                         </div>
-                        <div class="user-actions">
-                            <button class="btn btn-small ${user.is_active ? 'btn-danger' : 'btn-success'}" 
-                                    data-userid="${user.id}">
-                                ${user.is_active ? 'Ban' : 'Unban'}
-                            </button>
-                        </div>
+                        <button class="remove-user" 
+                                data-action="ban-user" 
+                                data-user-id="${user.id}">
+                            ${user.is_active ? 'Ban' : 'Unban'}
+                        </button>
                     </div>
                 `).join('');
             }
@@ -316,6 +308,7 @@ async loadFeatures() {
     }
 
     async editUser(userId) {
+        // Implement user edit modal...
     }
 
     async deleteUser(userId) {
