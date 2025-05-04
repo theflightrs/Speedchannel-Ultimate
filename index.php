@@ -37,9 +37,9 @@ error_log("[INDEX] Security instance created")
 
     <style>
     /* Initial state */
-    #loginForm, #sidebar, #messageInputArea, #chatInterface, .modal-overlay {
-        display: none;
-    }
+    #loginForm, #sidebar, #messageInputArea, #chatInterface, .modal-overlay, #adminModal {
+    display: none;
+}
    </style>
 
     <!-- Fixed the syntax error in the script tag -->
@@ -89,110 +89,11 @@ error_log("[INDEX] Security instance created")
     <div id="invitationList"></div>
 </div>
 
-
-                <!-- Admin Section -->
-                <div id="adminSection" hidden>
-                  <!--  <h3> Admin </h3> -->
-                   <button id="adminBtn" data-action="toggle-admin-panel">Admin Panel</button>
-          
-          <div id="adminPanel" class="admin-panel" hidden>
-   
-  <div class="admin-header">
-        <h2>Admin Panel</h2>
-        <button class="close-btn" data-action="hide-admin-panel">×</button>
-    </div>
-    
-    <div class="admin-tabs">
-        <button class="tab-btn active" data-tab="features">Features</button>
-        <button class="tab-btn" data-tab="sessions">Sessions</button>
-        <button class="tab-btn" data-tab="search">User Search</button>
-        <button class="tab-btn" data-tab="logs">Activity Logs</button>
-    </div>
-    
-    <div class="tab-content" id="featuresTab">
-        <h3>Feature Management</h3>
-        <div class="feature-toggles">
-            <label class="toggle-switch">
-                <input type="checkbox" id="sessionManagement" data-action="toggle-feature" data-feature="session_management">
-				<p>What?</p>
-                <span class="slider"></span>
-                Session Management
-            </label>
-            
-            <label class="toggle-switch">
-                <input type="checkbox" id="userSearch" onchange="toggleFeature('user_search', this.checked)">
-                <span class="slider"></span>
-                Advanced User Search
-            </label>
-            
-            <label class="toggle-switch">
-                <input type="checkbox" id="activityLogging" onchange="toggleFeature('activity_logging', this.checked)">
-                <span class="slider"></span>
-                Activity Logging
-            </label>
-        </div>
-    </div>
-    
-    <div class="tab-content" id="sessionsTab" hidden>
-        <h3>Active Sessions</h3>
-        <div class="session-filters">
-            <input type="text" id="sessionSearch" placeholder="Search by username...">
-            <select id="sessionSort">
-                <option value="last_activity">Last Activity</option>
-                <option value="ip_address">IP Address</option>
-                <option value="user_agent">Browser</option>
-            </select>
-        </div>
-        <div id="sessionsList"></div>
-    </div>
-    
-    <div class="tab-content" id="searchTab" hidden>
-        <h3>User Search</h3>
-        <div class="search-controls">
-            <input type="text" id="userSearchInput" placeholder="Search users...">
-            <div class="search-filters">
-                <select id="userRole">
-                    <option value="">All Roles</option>
-                    <option value="admin">Admins</option>
-                    <option value="user">Regular Users</option>
-                </select>
-                <select id="userStatus">
-                    <option value="">All Statuses</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-                <select id="sortBy">
-                    <option value="username">Username</option>
-                    <option value="created_at">Join Date</option>
-                    <option value="last_login">Last Login</option>
-                </select>
-            </div>
-        </div>
-        <div id="userSearchResults"></div>
-    </div>
-    
-    <div class="tab-content" id="logsTab" hidden>
-        <h3>Activity Logs</h3>
-        <div class="log-filters">
-            <input type="date" id="logDate" value="2025-04-20">
-            <select id="logType">
-                <option value="">All Activities</option>
-                <option value="auth">Authentication</option>
-                <option value="user">User Management</option>
-                <option value="channel">Channel Management</option>
-                <option value="message">Messages</option>
-            </select>
-            <select id="logSeverity">
-                <option value="">All Severities</option>
-                <option value="info">Info</option>
-                <option value="warning">Warning</option>
-                <option value="error">Error</option>
-            </select>
-        </div>
-        <div id="activityLogs"></div>
-    </div>
+<div id="adminSection" hidden>
+  <button id="adminBtn" data-action="toggle-admin-panel">Admin Panel</button>
 </div>
-          
+  
+
                 </div>
             </div>
   
@@ -317,8 +218,135 @@ error_log("[INDEX] Security instance created")
 
 
 
+              <!-- Admin Section -->
+            
 
+   <!-- Admin Modal -->
+<div id="adminModal" class="modal" hidden>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Admin Panel</h2>
+            <span class="close" data-action="close-modal">&times;</span>
+        </div>
+        
+        <div class="modal-body">
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="features">Features</button>
+                <button class="tab-btn" data-tab="sessions">Sessions</button>
+                <button class="tab-btn" data-tab="search">User Search</button>
+                <button class="tab-btn" data-tab="logs">Activity Logs</button>
+                <button class="tab-btn" data-tab="settings">Settings</button>
+            </div>
 
+            <!-- Features Tab -->
+            <div class="tab-content" id="featuresTab">
+                <h3>Feature Management</h3>
+                <div class="feature-toggles">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sessionManagement" data-action="toggle-feature" data-feature="session_management">
+                        <span class="slider"></span>
+                        Session Management
+                    </label>
+                    
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="userSearch" data-action="toggle-feature" data-feature="user_search">
+                        <span class="slider"></span>
+                        Advanced User Search
+                    </label>
+                    
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="activityLogging" data-action="toggle-feature" data-feature="activity_logging">
+                        <span class="slider"></span>
+                        Activity Logging
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Sessions Tab -->
+            <div class="tab-content" id="sessionsTab" hidden>
+                <h3>Active Sessions</h3>
+                <div class="session-filters">
+                    <input type="text" id="sessionSearch" placeholder="Search by username...">
+                    <select id="sessionSort">
+                        <option value="last_activity">Last Activity</option>
+                        <option value="ip_address">IP Address</option>
+                        <option value="user_agent">Browser</option>
+                    </select>
+                </div>
+                <div id="sessionsList"></div>
+            </div>
+            
+            <!-- Search Tab -->
+            <div class="tab-content" id="searchTab" hidden>
+                <h3>User Search</h3>
+                <div class="search-controls">
+                    <input type="text" id="userSearchInput" placeholder="Search users...">
+                    <div class="search-filters">
+                        <select id="userRole">
+                            <option value="">All Roles</option>
+                            <option value="admin">Admins</option>
+                            <option value="user">Regular Users</option>
+                        </select>
+                        <select id="userStatus">
+                            <option value="">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                        <select id="sortBy">
+                            <option value="username">Username</option>
+                            <option value="created_at">Join Date</option>
+                            <option value="last_login">Last Login</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="userSearchResults"></div>
+            </div>
+            
+            <!-- Logs Tab -->
+            <div class="tab-content" id="logsTab" hidden>
+                <h3>Activity Logs</h3>
+                <div class="log-filters">
+                    <input type="date" id="logDate">
+                    <select id="logType">
+                        <option value="">All Activities</option>
+                        <option value="auth">Authentication</option>
+                        <option value="user">User Management</option>
+                        <option value="channel">Channel Management</option>
+                        <option value="message">Messages</option>
+                    </select>
+                    <select id="logSeverity">
+                        <option value="">All Severities</option>
+                        <option value="info">Info</option>
+                        <option value="warning">Warning</option>
+                        <option value="error">Error</option>
+                    </select>
+                </div>
+                <div id="activityLogs"></div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div class="tab-content" id="settingsTab" hidden>
+                <h3>System Settings</h3>
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label for="maxLoginAttempts">Max Login Attempts</label>
+                        <input type="number" id="maxLoginAttempts" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="maxFileSize">Max File Size (bytes)</label>
+                        <input type="number" id="maxFileSize" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="maxFilesPerMessage">Max Files Per Message</label>
+                        <input type="number" id="maxFilesPerMessage" class="form-control">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 

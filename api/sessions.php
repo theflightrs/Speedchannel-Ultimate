@@ -1,165 +1,58 @@
 <?php
-session_start();
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 1);
-ini_set('session.use_only_cookies', 1);
+define('SECURE_ENTRY', true);
+require_once(__DIR__ . '/../config.php');
+require_once(__DIR__ . '/../Security.php');
+require_once(__DIR__ . '/../db_setup.php');
+
 header('Content-Type: application/json');
-require_once('../config.php');
-require_once('../Security.php');
-require_once('../db_setup.php');
+session_start();
 
-$security = Security::getInstance();
-$db = Database::getInstance();
-
-if (!isset($_SESSION['user_id'])) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Not authenticated']);
-    exit;
-}
-
-if ($action === 'check') {
+try {
+    $security = Security::getInstance();
+    
     if (!isset($_SESSION['user_id'])) {
-        echo json_encode(['success' => false]);
-        exit;
+        throw new Exception('No active session', 401);
     }
-    $user = $db->fetchOne("SELECT * FROM users WHERE id = ?", [$_SESSION['user_id']]);
-    echo json_encode(['success' => true, 'user' => $user]);
-}
 
-class SessionHandler {
-    private $db;
-    private $security;
-    
-    public function __construct() {
-        $this->db = Database::getInstance();
-        $this->security = Security::getInstance();
+    if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
+        throw new Exception('Unauthorized', 403);
     }
-    
-    public function handleRequest() {
-        header('Content-Type: application/json');
+
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $db = Database::getInstance();
         
-        try {
-            if (!$this->security->isAuthenticated()) {
-                throw new Exception('Unauthorized access', 401);
-            }
-            
-            if (!$_SESSION['is_admin']) {
-                throw new Exception('Admin access required', 403);
-            }
-            
-            if (!ENABLE_SESSION_MANAGEMENT) {
-                throw new Exception('Session management is disabled', 403);
-            }
-            
-            switch ($_SERVER['REQUEST_METHOD']) {
-                case 'GET':
-                    $this->handleGetSessions();
-                    break;
-                    
-                case 'DELETE':
-                    $this->handleTerminateSession();
-                    break;
-                    
-                default:
-                    throw new Exception('Method not allowed', 405);
-            }
-        } catch (Exception $e) {
-            http_response_code($e->getCode() ?: 500);
-            echo json_encode([
-                'success' => false,
-                'error' => $e->getMessage()
-            ]);
+        // Get current session info
+        $data = [
+            'id' => session_id(),
+            'user_id' => $_SESSION['user_id'],
+            'username' => $_SESSION['username'] ?? 'Unknown',
+            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown',
+            'last_activity' => date('Y-m-d H:i:s'),
+            'is_current' => true,
+            'is_admin' => $_SESSION['is_admin'] ?? false,
+            'browser' => 'Unknown'
+        ];
+
+        if (preg_match('/(chrome|safari|firefox|edge|opera)\s*(\d+)/i', 
+            $_SERVER['HTTP_USER_AGENT'] ?? '', $m)) {
+            $data['browser'] = ucfirst($m[1]) . " {$m[2]}";
         }
-    }
-    
-    private function handleGetSessions() {
-        $search = $_GET['search'] ?? '';
-        $sort = $_GET['sort'] ?? 'last_activity';
-        
-        $query = "
-            SELECT 
-                s.id as session_id,
-                s.user_id,
-                s.ip_address,
-                s.user_agent,
-                s.last_activity,
-                u.username,
-                u.is_admin
-            FROM sessions s
-            JOIN users u ON s.user_id = u.id
-            WHERE s.last_activity > DATE_SUB(NOW(), INTERVAL 24 HOUR)
-        ";
-        
-        $params = [];
-        
-        if ($search) {
-            $query .= " AND u.username LIKE ?";
-            $params[] = "%{$search}%";
-        }
-        
-        $query .= " ORDER BY " . match($sort) {
-            'ip_address' => 's.ip_address',
-            'user_agent' => 's.user_agent',
-            default => 's.last_activity DESC'
-        };
-        
-        $sessions = $this->db->fetchAll($query, $params);
-        
-        // Process user agents
-        foreach ($sessions as &$session) {
-            $session['browser_info'] = $this->parseBrowserInfo($session['user_agent']);
-            $session['is_current'] = ($session['session_id'] === session_id());
-        }
-        
+
         echo json_encode([
             'success' => true,
-            'data' => ['sessions' => $sessions]
+            'data' => [$data]
         ]);
+        exit;
     }
-    
-    private function handleTerminateSession() {
-        $sessionId = $_GET['id'] ?? null;
-        
-        if (!$sessionId) {
-            throw new Exception('Session ID required', 400);
-        }
-        
-        // Cannot terminate own session
-        if ($sessionId === session_id()) {
-            throw new Exception('Cannot terminate your own session', 400);
-        }
-        
-        // Delete session
-        $this->db->delete(
-            "DELETE FROM sessions WHERE id = ?",
-            [$sessionId]
-        );
-        
-        echo json_encode(['success' => true]);
-    }
-    
-    private function parseBrowserInfo($userAgent) {
-        $browser = "Unknown";
-        $platform = "Unknown";
-        
-        // Basic browser detection
-        if (preg_match('/(chrome|safari|firefox|edge|opera|msie|trident(?=\/))\/?\s*(\d+)/i', $userAgent, $matches)) {
-            $browser = ucfirst($matches[1]) . " {$matches[2]}";
-        }
-        
-        // Basic platform detection
-        if (preg_match('/(windows|macintosh|linux|android|iphone|ipad)/i', $userAgent, $matches)) {
-            $platform = ucfirst($matches[1]);
-        }
-        
-        return [
-            'browser' => $browser,
-            'platform' => $platform,
-            'raw' => $userAgent
-        ];
-    }
-}
 
-$handler = new SessionHandler();
-$handler->handleRequest();
-?>
+    throw new Exception('Method not allowed', 405);
+
+} catch (Exception $e) {
+    error_log("[Sessions Error] " . $e->getMessage() . "\n" . $e->getTraceAsString());
+    http_response_code($e->getCode() ?: 500);
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage()
+    ]);
+}

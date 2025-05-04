@@ -56,10 +56,17 @@ try {
 }
 
 function fetchCurrentUser($db) {
+    // Query explicitly includes is_admin flag
     $user = $db->fetchOne(
         "SELECT id, username, is_admin FROM users WHERE id = ?",
         [$_SESSION['user_id']]
     );
+    
+    // Convert is_admin to boolean for JavaScript
+    if ($user) {
+        $user['is_admin'] = (bool)$user['is_admin'];
+    }
+    
     echo json_encode(['success' => true, 'user' => $user]);
 }
 

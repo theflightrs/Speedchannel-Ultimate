@@ -3,55 +3,78 @@ import Api from './api.js';
 
 class AdminPanel {
     constructor(app) {
-		this.app = app;
+        this.app = app;
+        this.api = app.api;
         this.currentTab = 'features';
-        this.lastUpdate = '2025-04-20';
-        this.currentUser = 'user';
         this.refreshInterval = null;
-        this.initializeEventListeners();
+
+
+        document.addEventListener('click', (e) => {
+            console.log('Click detected on:', e.target);
+        });
+
+        setTimeout(() => this.initializeEventListeners(), 0);
+    }
+
+
+    escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
     initializeEventListeners() {
-        // Tab switching
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+        const tabsContainer = document.querySelector('.admin-tabs');
+        if (!tabsContainer) {
+            console.error('Admin tabs container not found');
+            return;
+        }
+    
+        // Single event listener for tabs using event delegation
+        tabsContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.tab-btn');
+            if (btn) {
+                console.log('Tab clicked:', btn.dataset.tab);
+                this.switchTab(btn.dataset.tab);
+            }
         });
-
+    
         // Feature toggles
-        document.querySelectorAll('.feature-toggles input').forEach(toggle => {
+        document.querySelectorAll('.feature-toggles input')?.forEach(toggle => {
             toggle.addEventListener('change', () => this.updateFeatureState(toggle));
         });
-
-        // Session management
-        document.getElementById('sessionSearch').addEventListener('input', 
+    
+        // Add optional chaining for all event listeners
+        document.getElementById('sessionSearch')?.addEventListener('input', 
             Utils.debounce(() => this.loadSessions(), 300)
         );
-        document.getElementById('sessionSort').addEventListener('change', 
+        
+        document.getElementById('sessionSort')?.addEventListener('change', 
             () => this.loadSessions()
         );
-
-        // User search
-        document.getElementById('userSearchInput').addEventListener('input',
+    
+        document.getElementById('userSearchInput')?.addEventListener('input',
             Utils.debounce(() => this.searchUsers(), 300)
         );
+    
         ['userRole', 'userStatus', 'sortBy'].forEach(id => {
-            document.getElementById(id).addEventListener('change', () => this.searchUsers());
+            document.getElementById(id)?.addEventListener('change', () => this.searchUsers());
         });
-
-        // Activity logs
-        document.getElementById('logDate').addEventListener('change', () => this.loadLogs());
-        document.getElementById('logType').addEventListener('change', () => this.loadLogs());
-        document.getElementById('logSeverity').addEventListener('change', () => this.loadLogs());
+    
+        ['logDate', 'logType', 'logSeverity'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', () => this.loadLogs());
+        });
     }
 
     show() {
-        document.getElementById('adminPanel').hidden = false;
         this.loadInitialData();
         this.startAutoRefresh();
     }
 
     hide() {
-        document.getElementById('adminPanel').hidden = true;
         this.stopAutoRefresh();
     }
 
@@ -70,18 +93,48 @@ class AdminPanel {
         }
     }
 
-    switchTab(tabName) {
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tab === tabName);
-        });
 
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.hidden = !content.id.includes(tabName);
-        });
+  switchTab(tabName) {
+    console.log('Switching to tab:', tabName); // Debug helper
+    
+    // Update current tab
+    this.currentTab = tabName;
+    
 
-        this.currentTab = tabName;
-        this.loadTabData(tabName);
+    // Show/hide tab content sections
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.hidden = content.id !== `${tabName}Tab`;
+    });
+
+    // Load tab data
+    this.loadTabData(tabName);
+}
+
+async loadFeatures() {
+    try {
+        const response = await this.app.api.get('/settings.php');
+        console.log('Features response:', response); // Debug
+
+        if (response.success) {
+            // Update toggles based on config
+            const features = {
+                'sessionManagement': response.data.features.session_management,
+                'userSearch': response.data.features.user_search,
+                'activityLogging': response.data.features.activity_logging
+            };
+
+            Object.entries(features).forEach(([elementId, enabled]) => {
+                const toggle = document.getElementById(elementId);
+                if (toggle) {
+                    toggle.checked = enabled;
+                }
+            });
+        }
+    } catch (error) {
+        this.app.ui.showError('Failed to load features');
+        console.error('Failed to load features:', error);
     }
+}
 
     loadTabData(tabName) {
         switch (tabName) {
@@ -99,72 +152,68 @@ class AdminPanel {
 
     async loadInitialData() {
         try {
-            const response = await Api.request('/admin/features.php');
+            const response = await this.app.api.get('/settings.php');
+            if (!response.success) throw new Error('Failed to load settings');
+            
             const features = response.data.features;
-
-            // Update toggle states
-            document.getElementById('sessionManagement').checked = features.session_management;
-            document.getElementById('userSearch').checked = features.user_search;
-            document.getElementById('activityLogging').checked = features.activity_logging;
-
-            // Load initial tab data
+            Object.entries(features).forEach(([id, enabled]) => {
+                const toggle = document.getElementById(id);
+                if (toggle) toggle.checked = enabled;
+            });
+    
             this.loadTabData(this.currentTab);
         } catch (error) {
-            console.error('Failed to load admin features:', error);
+            this.app.ui.showError('Failed to load admin settings');
+            console.error(error);
         }
     }
 
-    async updateFeatureState(toggle) {
-        const feature = toggle.id;
-        const enabled = toggle.checked;
-
+    async updateFeatureState({ id, checked }) {
         try {
-            await Api.request('/admin/features.php', {
-                method: 'POST',
-                body: JSON.stringify({
-                    feature,
-                    enabled
-                })
+            const response = await this.app.api.post('/settings.php', { // Instead of '/settings.php'
+                action: 'update_feature',
+                feature: id,
+                enabled: checked
             });
+            if (!response.success) throw new Error('Update failed');
         } catch (error) {
-            console.error('Failed to update feature state:', error);
-            toggle.checked = !enabled; // Revert toggle state
-            Utils.showError('adminError', 'Failed to update feature settings');
+            this.app.ui.showError('Failed to update feature');
+            // Revert toggle
+            const toggle = document.getElementById(id);
+            if (toggle) toggle.checked = !checked;
         }
     }
 
     async loadSessions() {
-        const search = document.getElementById('sessionSearch').value;
-        const sort = document.getElementById('sessionSort').value;
-
         try {
-            const response = await Api.request(`/sessions.php?search=${encodeURIComponent(search)}&sort=${sort}`);
-            const sessions = response.data.sessions;
-
+            const response = await this.app.api.get('/sessions.php', {
+                search: document.getElementById('sessionSearch')?.value || '',
+                sort: document.getElementById('sessionSort')?.value || 'last_activity'
+            });
+            console.log('Sessions response:', response);
+    
             const sessionsList = document.getElementById('sessionsList');
-            sessionsList.innerHTML = sessions.map(session => `
+            if (!sessionsList) return;
+    
+            if (!response.success) throw new Error(response.message);
+            
+            // Render sessions list using the class's own escapeHtml method
+            sessionsList.innerHTML = response.data.map(session => `
                 <div class="session-item ${session.is_current ? 'current' : ''}">
                     <div class="session-info">
-                        <div class="session-user">
-                            <span class="username">${Utils.escapeHtml(session.username)}</span>
-                            ${session.is_admin ? '<span class="admin-badge">Admin</span>' : ''}
-                        </div>
-                        <div class="session-details">
-                            <span class="browser">${session.browser_info.browser} on ${session.browser_info.platform}</span>
-                            <span class="ip-address">${session.ip_address}</span>
-                            <span class="last-active">Last active: ${Utils.formatTime(session.last_activity)}</span>
-                        </div>
+                        <span class="username">${this.escapeHtml(session.username)}</span>
+                        <span class="browser">${session.browser}</span>
+                        <span class="ip">${session.ip_address}</span>
+                        <span class="last-active">Last active: ${new Date(session.last_activity).toLocaleString()}</span>
                     </div>
                     ${!session.is_current ? `
-                        <button class="terminate-btn" onclick="adminPanel.terminateSession('${session.session_id}')">
-                            Terminate
-                        </button>
+                        <button class="terminate-btn" data-session-id="${session.id}">Terminate</button>
                     ` : ''}
                 </div>
             `).join('');
         } catch (error) {
             console.error('Failed to load sessions:', error);
-            Utils.showError('adminError', 'Failed to load active sessions');
+            this.app.ui.showError('Failed to load sessions');
         }
     }
 
@@ -185,83 +234,67 @@ class AdminPanel {
     }
 
     async searchUsers() {
-        const search = document.getElementById('userSearchInput').value;
-        const role = document.getElementById('userRole').value;
-        const status = document.getElementById('userStatus').value;
-        const sort = document.getElementById('sortBy').value;
-
         try {
-            const response = await Api.request(
-                `/user_search.php?q=${encodeURIComponent(search)}&role=${role}&status=${status}&sort=${sort}`
-            );
-            const { users, pagination } = response.data;
-
+            const response = await this.app.api.get('/user_search.php', {
+                q: document.getElementById('userSearchInput')?.value || '',
+                role: document.getElementById('userRole')?.value || '',
+                status: document.getElementById('userStatus')?.value || '',
+                sort: document.getElementById('sortBy')?.value || 'username'
+            });
+    
+            if (!response.success) throw new Error(response.message || 'Failed to search users');
+            
             const resultsDiv = document.getElementById('userSearchResults');
-            resultsDiv.innerHTML = users.map(user => `
-                <div class="user-card ${!user.is_active ? 'inactive' : ''}">
-                    <div class="user-info">
-                        <div class="user-header">
-                            <span class="username">${Utils.escapeHtml(user.username)}</span>
-                            ${user.is_admin ? '<span class="admin-badge">Admin</span>' : ''}
-                            ${!user.is_active ? '<span class="inactive-badge">Inactive</span>' : ''}
-                        </div>
-                        <div class="user-stats">
-                            <span>Channels: ${user.channel_count}</span>
-                            <span>Messages: ${user.message_count}</span>
-                            <span>Joined: ${Utils.formatTime(user.created_at)}</span>
-                            <span>Last Login: ${user.last_login ? Utils.formatTime(user.last_login) : 'Never'}</span>
-                        </div>
+            if (resultsDiv && response.data?.users) {
+                resultsDiv.innerHTML = response.data.users.map(user => `
+                    <div class="user-card">
+                        <span class="username">${this.escapeHtml(user.username)}</span>
+                        ${user.is_admin ? '<span class="badge admin">Admin</span>' : ''}
+                        <span class="last-login">Last login: ${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</span>
                     </div>
-                    <div class="user-actions">
-                        <button onclick="adminPanel.editUser(${user.id})">Edit</button>
-                        ${user.id !== this.currentUser ? `
-                            <button class="danger" onclick="adminPanel.deleteUser(${user.id})">Delete</button>
-                        ` : ''}
-                    </div>
-                </div>
-            `).join('');
-
-            this.renderPagination(pagination);
+                `).join('');
+            }
         } catch (error) {
             console.error('Failed to search users:', error);
-            Utils.showError('adminError', 'Failed to search users');
+            this.app.ui.showError('Failed to search users');
         }
     }
-
+    
     async loadLogs() {
-        const date = document.getElementById('logDate').value;
-        const type = document.getElementById('logType').value;
-        const severity = document.getElementById('logSeverity').value;
-
+        const logsDiv = document.getElementById('activityLogs');
+        if (!logsDiv) return;
+    
         try {
-            const response = await Api.request(
-                `/activity_logs.php?date=${date}&type=${type}&severity=${severity}`
-            );
-            const { logs, pagination } = response.data;
-
-            const logsDiv = document.getElementById('activityLogs');
-            logsDiv.innerHTML = logs.map(log => `
+            const response = await this.app.api.get('/activity_logs.php', {
+                date: document.getElementById('logDate')?.value || '',
+                type: document.getElementById('logType')?.value || '',
+                severity: document.getElementById('logSeverity')?.value || ''
+            });
+    
+            if (!response.success) {
+                if (response.error?.includes('disabled')) {
+                    logsDiv.innerHTML = `
+                        <div class="feature-disabled">
+                            <p>Activity logging is currently disabled.</p>
+                            <p>Enable it in the Features tab first.</p>
+                        </div>`;
+                    return;
+                }
+                throw new Error(response.message || 'Failed to load logs');
+            }
+            
+            logsDiv.innerHTML = response.data.logs.map(log => `
                 <div class="log-entry ${log.severity}">
-                    <div class="log-header">
-                        <span class="log-time">${Utils.formatTime(log.created_at)}</span>
-                        <span class="log-user">${Utils.escapeHtml(log.username || 'System')}</span>
-                        <span class="log-type">${log.type}</span>
-                        <span class="log-severity">${log.severity}</span>
-                    </div>
-                    <div class="log-action">${Utils.escapeHtml(log.action)}</div>
-                    <div class="log-details">
-                        <pre>${JSON.stringify(log.details, null, 2)}</pre>
-                    </div>
+                    <div class="log-time">${new Date(log.timestamp).toLocaleString()}</div>
+                    <div class="log-info">${this.escapeHtml(log.message)}</div>
                 </div>
             `).join('');
-
-            this.renderPagination(pagination);
         } catch (error) {
             console.error('Failed to load logs:', error);
-            Utils.showError('adminError', 'Failed to load activity logs');
+            this.app.ui.showError(error.message);
         }
     }
-
+    
     renderPagination(pagination) {
         const { current_page, total_pages, total_results } = pagination;
         

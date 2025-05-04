@@ -32,41 +32,48 @@
             });
         });
     }
+
     async handleLogin() {
         const username = document.getElementById('loginUsername').value.trim();
         const password = document.getElementById('loginPassword').value;
         const errorDiv = document.getElementById('loginError');
-
+        const spinner = document.getElementById('spinner');
+    
         errorDiv.hidden = true;
-      //   document.getElementById('messageInputArea').display = false;
         document.getElementById("messageInputArea").style.display = "none";
-  
+    
         try {
-            const spinner = document.getElementById('spinner');
-            if (spinner) spinner.style.display = 'block'; // Show spinner
+            if (spinner) spinner.style.display = 'block';
+    
             const response = await this.app.api.post('/auth.php', {
                 action: 'login',
                 username: username,
                 password: password
-                
             });
-
+    
             if (response.success && response.user) {
                 this.user = response.user;
                 this.app.currentUser = response.user;
-                this.authState.setAuthState(true);
-                document.getElementById('userDisplay').textContent = response.user.username;
-                await this.app.userManager.loadUsers();
-                await this.app.channels.loadChannels();
+                this.authState.setAuthState(true, response.user);
+                
+                // Update admin section visibility before init
+                const adminSection = document.getElementById('adminSection');
+                if (adminSection) {
+                    adminSection.hidden = !response.user.is_admin;
+                }
+                
+                await this.app.init();
+                document.getElementById('chatInterface').hidden = false;
                 return response;
             }
         } catch (error) {
             console.error('Login failed:', error);
             errorDiv.textContent = error.message;
             errorDiv.hidden = false;
+        } finally {
+            if (spinner) spinner.style.display = 'none';
         }
     }
-
 
     async handleRegister() {
         const username = document.getElementById('registerUsername').value.trim(); // Added trim

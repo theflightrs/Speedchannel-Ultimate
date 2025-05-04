@@ -34,10 +34,7 @@ class App {
 
             this.log('Application initialized successfully');
 
-            if (this.currentUser?.is_admin) {
-                this.admin = new AdminPanel(this);
-            }
-
+    
             this.setupErrorHandling();
             this.setupEventDelegation();
 
@@ -50,6 +47,15 @@ class App {
     async initializeAfterAuth(userData) {
         try {
             this.currentUser = userData;
+
+
+        // Show admin section if user is admin
+        document.getElementById('adminSection').hidden = !userData.is_admin;
+
+        // Initialize admin panel if user is admin
+        if (userData.is_admin) {
+            this.admin = new AdminPanel(this);
+        }
 
             await Promise.all([
                 this.userManager.loadUsers(),
@@ -74,6 +80,9 @@ class App {
             if (userResponse.success && userResponse.user) {
                 this.currentUser = userResponse.user;
                 AuthState.getInstance().setAuthState(true, userResponse.user);
+                
+                // Add this line to handle admin section visibility on refresh
+                document.getElementById('adminSection').hidden = !userResponse.user.is_admin;
                 
                 // Set channel title if no channel is selected
                 if (!this.channels.currentChannel) {
@@ -190,6 +199,18 @@ class App {
                     case 'confirm-delete-channel':
                         this.channels.deleteChannel();
                         break;
+                        case 'toggle-admin-panel':
+                            this.modalManager.hideAll();
+                            this.modalManager.openModal('adminModal');
+                            console.log('Opening admin panel...'); // Debug
+                            if (this.admin) {
+                                console.log('Admin panel exists, reinitializing...'); // Debug
+                                this.admin = new AdminPanel(this);
+                            } else {
+                                console.log('Creating new admin panel...'); // Debug
+                                this.admin = new AdminPanel(this);
+                            }
+                            break;
 
                     case 'show-channel-settings':
                         if (this.chat.currentChannel) {
