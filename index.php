@@ -324,26 +324,11 @@ error_log("[INDEX] Security instance created")
 
             <!-- Settings Tab -->
             <div class="tab-content" id="settingsTab" hidden>
-                <h3>System Settings</h3>
-                <div class="settings-form">
-                    <div class="form-group">
-                        <label for="maxLoginAttempts">Max Login Attempts</label>
-                        <input type="number" id="maxLoginAttempts" class="form-control">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="maxFileSize">Max File Size (bytes)</label>
-                        <input type="number" id="maxFileSize" class="form-control">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="maxFilesPerMessage">Max Files Per Message</label>
-                        <input type="number" id="maxFilesPerMessage" class="form-control">
-                    </div>
-                </div>
-            </div>
-        </div>
+    <h3>System Settings</h3>
+    <div class="settings-form" id="dynamicSettingsForm">
+        <!-- Settings will be dynamically inserted here -->
     </div>
+    <button class="btn primary" id="saveSettings">Save Settings</button>
 </div>
 
 

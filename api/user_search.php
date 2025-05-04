@@ -8,19 +8,57 @@ header('Content-Type: application/json');
 session_start();
 
 try {
-    // Using your existing security check
     if (!isset($_SESSION['user_id']) || !isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
         throw new Exception('Unauthorized', 403);
     }
 
     $db = Database::getInstance();
-    
-    // Enhanced query with all necessary user fields
+
+    // Handle POST actions
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $postData = json_decode(file_get_contents('php://input'), true);
+        if (!$postData) {
+            throw new Exception('Invalid JSON data');
+        }
+
+        $action = $postData['action'] ?? '';
+        $userId = intval($postData['user_id'] ?? 0);
+
+        if ($action === 'delete' && $userId > 0) {
+            // Prevent self-deletion
+            if ($userId === $_SESSION['user_id']) {
+                throw new Exception('Cannot delete yourself');
+            }
+
+            $db->beginTransaction();
+            try {
+                // Delete user
+                $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
+                $result = $stmt->execute([$userId]);
+                
+                if (!$result) {
+                    throw new Exception('Failed to delete user');
+                }
+                
+                if ($stmt->rowCount() === 0) {
+                    throw new Exception('User not found');
+                }
+
+                $db->commit();
+                echo json_encode(['success' => true]);
+                exit;
+            } catch (Exception $e) {
+                $db->rollBack();
+                throw $e;
+            }
+        }
+    }
+
+    // Rest of your existing GET query code...
     $query = "SELECT id, username, email, is_admin, is_active, last_login, created_at 
               FROM users WHERE 1=1";
     $params = [];
 
-    // Search by username/email with trimmed input
     if (!empty($_GET['q'])) {
         $search = "%" . trim($_GET['q']) . "%";
         $query .= " AND (username LIKE ? OR email LIKE ?)";
@@ -28,19 +66,16 @@ try {
         $params[] = $search;
     }
 
-    // Role filter using is_admin field
     if (!empty($_GET['role'])) {
         $query .= " AND is_admin = ?";
         $params[] = ($_GET['role'] === 'admin') ? 1 : 0;
     }
 
-    // Filter by status
     if (!empty($_GET['status'])) {
         $query .= " AND is_active = ?";
         $params[] = ($_GET['status'] === 'active') ? 1 : 0;
     }
 
-    // Enhanced sorting with NULLS LAST for last_login
     $query .= " ORDER BY " . match($_GET['sort'] ?? 'username') {
         'last_login' => 'last_login DESC NULLS LAST',
         'created' => 'created_at DESC',
@@ -48,16 +83,12 @@ try {
         default => 'username ASC'
     };
 
-    // Using your existing database fetch method
     $users = $db->fetchAll($query, $params);
 
     echo json_encode([
         'success' => true,
         'data' => ['users' => $users]
     ]);
-
-
-    
 
 } catch (Exception $e) {
     error_log("[User Search] " . $e->getMessage());

@@ -74,12 +74,47 @@ class AdminPanel {
         document.getElementById('userSearchInput')?.addEventListener('input',
         Utils.debounce(() => window.adminSearchUsers(), 300)
     );
-
-    
         
     }
 
-    
+   // Add this method to your AdminPanel class
+   async loadSettings() {
+    console.log('loadSettings called'); // Debug
+    try {
+        const response = await this.app.api.get('/settings.php');
+        console.log('Settings API response:', response); // Debug
+        
+        const form = document.getElementById('dynamicSettingsForm');
+        console.log('Found form element:', form); // Debug
+        
+        if (!form) {
+            console.error('Settings form element not found');
+            return;
+        }
+        
+        form.innerHTML = ''; // Clear existing fields
+        
+        Object.entries(response.settings).forEach(([key, data]) => {
+            console.log('Creating field for:', key, data); // Debug
+            const formGroup = document.createElement('div');
+            formGroup.className = 'form-group';
+            
+            formGroup.innerHTML = `
+                <label for="${key}">${key.replace(/_/g, ' ').toLowerCase()}</label>
+                <input type="${data.type === 'boolean' ? 'checkbox' : data.type}" 
+                       id="${key}" 
+                       class="form-control" 
+                       ${data.type === 'boolean' ? (data.value ? 'checked' : '') : `value="${data.value}"`}>
+            `;
+            
+            form.appendChild(formGroup);
+        });
+
+    } catch (error) {
+        console.error('Settings error:', error); // Debug
+        this.app.ui.showError('Failed to load settings');
+    }
+}
 
     show() {
         this.loadInitialData();
@@ -105,22 +140,18 @@ class AdminPanel {
         }
     }
 
-
-  switchTab(tabName) {
-    console.log('Switching to tab:', tabName); // Debug helper
+    switchTab(tabName) {
+        console.log('Switching to tab:', tabName);
+        this.currentTab = tabName;
     
-    // Update current tab
-    this.currentTab = tabName;
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.hidden = content.id !== `${tabName}Tab`;
+        });
     
-
-    // Show/hide tab content sections
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.hidden = content.id !== `${tabName}Tab`;
-    });
-
-    // Load tab data
-    this.loadTabData(tabName);
-}
+        // Add this console.log
+        console.log('Loading tab data for:', tabName);
+        this.loadTabData(tabName);  // Make sure this line exists
+    }
 
 async loadFeatures() {
     try {
@@ -148,19 +179,22 @@ async loadFeatures() {
     }
 }
 
-    loadTabData(tabName) {
-        switch (tabName) {
-            case 'sessions':
-                this.loadSessions();
-                break;
-            case 'search':
-                this.searchUsers();
-                break;
-            case 'logs':
-                this.loadLogs();
-                break;
-        }
+loadTabData(tabName) {
+    switch (tabName) {
+        case 'sessions':
+            this.loadSessions();
+            break;
+        case 'search':
+            this.searchUsers();
+            break;
+        case 'logs':
+            this.loadLogs();
+            break;
+        case 'settings':  // Add this case if missing
+            this.loadSettings();
+            break;
     }
+}
 
     async loadInitialData() {
         try {
@@ -258,59 +292,66 @@ async loadFeatures() {
             if (!response.success) throw new Error(response.message);
             
             const resultsDiv = document.getElementById('userSearchResults');
-            if (resultsDiv && response.data?.users) {
-                resultsDiv.innerHTML = response.data.users.map(user => {
-                    const isCurrentUser = user.id === this.app.currentUser?.id;
-                    
-                    return `
-                        <div class="channel-user" data-user-id="${user.id}">
-                            <div class="user-info">
-                                <span>${this.escapeHtml(user.username)}</span>
-                                <span class="status ${user.is_active ? 'active' : 'inactive'}">
-                                    ${user.is_active ? '●' : '○'}
-                                </span>
-                                ${user.is_admin ? ' 🛡️' : ''}
-                            </div>
-                            ${!isCurrentUser ? `
-                                <div class="user-actions">
-                                    <button class="remove-user" 
-                                            data-action="toggle-ban"
-                                            data-user-id="${user.id}">
-                                        ${user.is_banned ? 'Unban' : 'Ban'}
-                                    </button>
-                                    <button class="remove-user" 
-                                            data-action="delete-user"
-                                            data-user-id="${user.id}">
-                                        Delete
-                                    </button>
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                }).join('');
+            if (!resultsDiv) return;
     
-            resultsDiv.addEventListener('click', async (e) => {
-                const button = e.target.closest('button');
-                if (!button) return;
-
-                const userId = button.dataset.userId;
-                const action = button.dataset.action;
-
-                switch (action) {
-                    case 'delete-user':
-                        if (await this.confirmDelete(userId)) {
-                            await this.deleteUser(userId);
-                        }
-                        break;
-                    case 'toggle-ban':
-                        await this.toggleUserBan(userId);
-                        break;
+            // Clear existing content and listeners
+            resultsDiv.innerHTML = '';
+            
+            response.data.users.forEach(user => {
+                const isCurrentUser = user.id === this.app.currentUser?.id;
+                const userRow = document.createElement('div');
+                userRow.className = 'channel-user';
+                userRow.dataset.userId = user.id;
+                
+                userRow.innerHTML = `
+                    <div class="user-info">
+                        <span>${this.escapeHtml(user.username)}</span>
+                        <span class="status ${user.is_active ? 'active' : 'inactive'}">
+                            ${user.is_active ? '●' : '○'}
+                        </span>
+                        ${user.is_admin ? ' 🛡️' : ''}
+                    </div>
+                    ${!isCurrentUser ? `
+                        <div class="user-actions">
+                        <button class="remove-user delete-user" data-user-id="${user.id}">Delete</button>
+                        <button class="remove-user toggle-ban" data-user-id="${user.id}">
+                            ${user.is_banned ? 'Unban' : 'Ban'}
+                            </button>
+                        </div>
+                    ` : ''}
+                `;
+    
+                // Add delete listener
+                const deleteBtn = userRow.querySelector('.delete-user');
+                if (deleteBtn) {
+                    deleteBtn.onclick = () => this.deleteUser(user.id);
                 }
+    
+                resultsDiv.appendChild(userRow);
             });
-            }
+    
         } catch (error) {
             console.error('Failed to search users:', error);
             this.app.ui.showError('Failed to search users');
+        }
+    }
+
+    async handleUserAction(e) {
+        const button = e.target.closest('button');
+        if (!button) return;
+    
+        const userId = button.dataset.userId;
+        const action = button.dataset.action;
+    
+        switch (action) {
+            case 'delete-user':
+                if (await this.confirmDelete(userId)) {
+                    await this.deleteUser(userId);
+                }
+                break;
+            case 'toggle-ban':
+                await this.toggleUserBan(userId);
+                break;
         }
     }
 
@@ -366,19 +407,20 @@ async loadFeatures() {
 
     async deleteUser(userId) {
         try {
-            const response = await this.app.api.post('user_search.php', {
-                action: 'delete',
-                user_id: userId
-            });
+            if (await this.confirmDelete(userId)) {
+                const response = await this.app.api.post('/user_search.php', {
+                    action: 'delete',
+                    user_id: userId
+                });
     
-            if (response.success) {
-                await this.searchUsers(); // Refresh the list
-            } else {
-                throw new Error(response.message || 'Failed to delete user');
+                if (response.success) {
+                    await this.searchUsers(); // Reload the list
+                    this.app.ui.showSuccess('User deleted successfully');
+                }
             }
         } catch (error) {
-            console.error('Failed to delete user:', error);
-            this.app.ui.showError('Failed to delete user');
+            console.error('Delete error:', error);
+            this.app.ui.showError(error.message || 'Failed to delete user');
         }
     }
     
