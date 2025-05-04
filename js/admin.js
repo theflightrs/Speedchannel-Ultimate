@@ -266,18 +266,47 @@ async loadFeatures() {
                         <div class="channel-user" data-user-id="${user.id}">
                             <div class="user-info">
                                 <span>${this.escapeHtml(user.username)}</span>
+                                <span class="status ${user.is_active ? 'active' : 'inactive'}">
+                                    ${user.is_active ? '●' : '○'}
+                                </span>
                                 ${user.is_admin ? ' 🛡️' : ''}
                             </div>
                             ${!isCurrentUser ? `
-                                <button class="remove-user"
-                                        data-action="toggle-status"
-                                        data-user-id="${user.id}">
-                                    ${user.is_active ? 'Deactivate' : 'Activate'}
-                                </button>
+                                <div class="user-actions">
+                                    <button class="remove-user" 
+                                            data-action="toggle-ban"
+                                            data-user-id="${user.id}">
+                                        ${user.is_banned ? 'Unban' : 'Ban'}
+                                    </button>
+                                    <button class="remove-user" 
+                                            data-action="delete-user"
+                                            data-user-id="${user.id}">
+                                        Delete
+                                    </button>
+                                </div>
                             ` : ''}
                         </div>
                     `;
                 }).join('');
+    
+            resultsDiv.addEventListener('click', async (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+
+                const userId = button.dataset.userId;
+                const action = button.dataset.action;
+
+                switch (action) {
+                    case 'delete-user':
+                        if (await this.confirmDelete(userId)) {
+                            await this.deleteUser(userId);
+                        }
+                        break;
+                    case 'toggle-ban':
+                        await this.toggleUserBan(userId);
+                        break;
+                }
+            });
             }
         } catch (error) {
             console.error('Failed to search users:', error);
@@ -285,7 +314,9 @@ async loadFeatures() {
         }
     }
 
-
+    async confirmDelete(userId) {
+        return confirm('Are you sure you want to delete this user? This action cannot be undone.');
+    }
     
     async loadLogs() {
         const logsDiv = document.getElementById('activityLogs');
@@ -334,18 +365,38 @@ async loadFeatures() {
     }
 
     async deleteUser(userId) {
-        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-            return;
-        }
-
         try {
-            await Api.request(`/users.php?id=${userId}`, {
-                method: 'DELETE'
+            const response = await this.app.api.post('user_search.php', {
+                action: 'delete',
+                user_id: userId
             });
-            this.searchUsers();
+    
+            if (response.success) {
+                await this.searchUsers(); // Refresh the list
+            } else {
+                throw new Error(response.message || 'Failed to delete user');
+            }
         } catch (error) {
             console.error('Failed to delete user:', error);
-            Utils.showError('adminError', 'Failed to delete user');
+            this.app.ui.showError('Failed to delete user');
+        }
+    }
+    
+    async toggleUserBan(userId) {
+        try {
+            const response = await this.app.api.post('user_search.php', {
+                action: 'toggle_ban',
+                user_id: userId
+            });
+    
+            if (response.success) {
+                await this.searchUsers(); // Refresh the list
+            } else {
+                throw new Error(response.message || 'Failed to toggle user ban status');
+            }
+        } catch (error) {
+            console.error('Failed to toggle user ban:', error);
+            this.app.ui.showError('Failed to toggle user ban status');
         }
     }
 }

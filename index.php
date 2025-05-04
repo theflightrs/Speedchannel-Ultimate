@@ -221,9 +221,10 @@ error_log("[INDEX] Security instance created")
    <!-- Admin Modal -->
 <div id="adminModal" class="modal" hidden>
     <div class="modal-content">
+    <span class="close" data-action="close-modal">&times;</span>
         <div class="modal-header">
             <h2>Admin Panel</h2>
-            <span class="close" data-action="close-modal">&times;</span>
+       
         </div>
         
         <div class="modal-body">

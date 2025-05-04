@@ -29,6 +29,7 @@ function initializeDatabase() {
                 last_login_attempt TIMESTAMP NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_login TIMESTAMP NULL,
+                is_banned BOOLEAN DEFAULT FALSE,
                 reset_token VARCHAR(64) NULL,
                 reset_token_expires TIMESTAMP NULL
             )",

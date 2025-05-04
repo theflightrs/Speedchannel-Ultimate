@@ -34,7 +34,7 @@ try {
         $params[] = ($_GET['role'] === 'admin') ? 1 : 0;
     }
 
-    // Status filter
+    // Filter by status
     if (!empty($_GET['status'])) {
         $query .= " AND is_active = ?";
         $params[] = ($_GET['status'] === 'active') ? 1 : 0;
@@ -55,6 +55,9 @@ try {
         'success' => true,
         'data' => ['users' => $users]
     ]);
+
+
+    
 
 } catch (Exception $e) {
     error_log("[User Search] " . $e->getMessage());
