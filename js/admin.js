@@ -93,20 +93,22 @@ class AdminPanel {
         }
     }
 
-    switchTab(tabName) {
-        console.log('Switching to tab:', tabName);
-        
-        // Update current tab
-        this.currentTab = tabName;
-        
-        // Only target admin panel tab content
-        document.querySelectorAll('.admin-panel .tab-content').forEach(content => {
-            content.hidden = content.id !== `${tabName}Tab`;
-        });
+
+  switchTab(tabName) {
+    console.log('Switching to tab:', tabName); // Debug helper
     
-        // Load tab data
-        this.loadTabData(tabName);
-    }
+    // Update current tab
+    this.currentTab = tabName;
+    
+
+    // Show/hide tab content sections
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.hidden = content.id !== `${tabName}Tab`;
+    });
+
+    // Load tab data
+    this.loadTabData(tabName);
+}
 
 async loadFeatures() {
     try {
@@ -168,7 +170,7 @@ async loadFeatures() {
 
     async updateFeatureState({ id, checked }) {
         try {
-            const response = await this.app.api.post('/settings.php', { // Instead of '/settings.php'
+            const response = await this.app.api.post('/settings.php', { 
                 action: 'update_feature',
                 feature: id,
                 enabled: checked
@@ -314,7 +316,6 @@ async loadFeatures() {
     }
 
     async editUser(userId) {
-        // Implement user edit modal...
     }
 
     async deleteUser(userId) {
