@@ -44,6 +44,9 @@ class App {
         }
     }
 
+
+   
+
     async initializeAfterAuth(userData) {
         try {
             this.currentUser = userData;
@@ -96,6 +99,8 @@ class App {
                     document.getElementById('userDisplay').textContent = userResponse.user.username,
                     this.startPolling()
                 ]);
+
+                
             }
         } catch (error) {
             if (error.message !== "Not authenticated") {
@@ -159,20 +164,21 @@ class App {
     setupEventDelegation() {
         document.addEventListener('click', (e) => {
             const target = e.target.closest('[data-action]');
-            if (!target) return;
-
+            if (!target) {
+                console.log('No data-action found on clicked element');
+                return;
+            }
+    
+            console.log('Action clicked:', target.dataset.action); // Debug
             e.preventDefault();
             const action = target.dataset.action;
-
+    
             try {
                 switch (action) {
-                    case 'switch-channel':
-                        const channelId = target.dataset.channelId;
-                        if (channelId) {
-                            this.channels.switchChannel(channelId);
-                        } else {
-                            console.warn('Channel ID missing in switch-channel action');
-                        }
+                    case 'create-channel':
+                        console.log('Create channel case hit'); // Debug
+                        this.modalManager.hideAll();
+                        this.modalManager.openModal('createChannelModal');
                         break;
 
                     case 'login':
@@ -202,12 +208,9 @@ class App {
                         case 'toggle-admin-panel':
                             this.modalManager.hideAll();
                             this.modalManager.openModal('adminModal');
-                            console.log('Opening admin panel...'); // Debug
                             if (this.admin) {
-                                console.log('Admin panel exists, reinitializing...'); // Debug
                                 this.admin = new AdminPanel(this);
                             } else {
-                                console.log('Creating new admin panel...'); // Debug
                                 this.admin = new AdminPanel(this);
                             }
                             break;
@@ -355,6 +358,9 @@ class App {
                 }
             }
         });
+
+
+   
     }
 
     handleLogout() {

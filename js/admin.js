@@ -79,39 +79,55 @@ class AdminPanel {
 
    // Add this method to your AdminPanel class
    async loadSettings() {
-    console.log('loadSettings called'); // Debug
     try {
         const response = await this.app.api.get('/settings.php');
-        console.log('Settings API response:', response); // Debug
-        
         const form = document.getElementById('dynamicSettingsForm');
-        console.log('Found form element:', form); // Debug
-        
-        if (!form) {
-            console.error('Settings form element not found');
-            return;
-        }
-        
-        form.innerHTML = ''; // Clear existing fields
+        form.innerHTML = '';
         
         Object.entries(response.settings).forEach(([key, data]) => {
-            console.log('Creating field for:', key, data); // Debug
             const formGroup = document.createElement('div');
             formGroup.className = 'form-group';
             
-            formGroup.innerHTML = `
-                <label for="${key}">${key.replace(/_/g, ' ').toLowerCase()}</label>
-                <input type="${data.type === 'boolean' ? 'checkbox' : data.type}" 
-                       id="${key}" 
-                       class="form-control" 
-                       ${data.type === 'boolean' ? (data.value ? 'checked' : '') : `value="${data.value}"`}>
-            `;
+            if (data.type === 'boolean') {
+                // Checkbox styling matching create channel modal
+                formGroup.innerHTML = `
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" 
+                               id="${key}" 
+                               class="checkbox-input"
+                               ${data.value ? 'checked' : ''}>
+                        <label for="${key}" class="checkbox-label">
+                            ${key.replace(/_/g, ' ').toLowerCase()}
+                        </label>
+                    </div>
+                `;
+            } else {
+                formGroup.innerHTML = `
+                    <label for="${key}">${key.replace(/_/g, ' ').toLowerCase()}</label>
+                    <input type="${data.type}" 
+                           id="${key}" 
+                           class="form-control" 
+                           value="${data.value}"
+                           ${key === 'MAX_FILE_SIZE' ? 'oninput="updateFileSize(this.value)"' : ''}>
+                    ${key === 'MAX_FILE_SIZE' ? '<span id="fileSizeDisplay"></span>' : ''}
+                `;
+            }
             
             form.appendChild(formGroup);
         });
 
+        // Add file size converter function
+        if (document.getElementById('MAX_FILE_SIZE')) {
+            window.updateFileSize = function(bytes) {
+                const mb = (bytes / (1024 * 1024)).toFixed(2);
+                document.getElementById('fileSizeDisplay').textContent = `(${mb} MB)`;
+            };
+            // Initialize display
+            updateFileSize(document.getElementById('MAX_FILE_SIZE').value);
+        }
+
     } catch (error) {
-        console.error('Settings error:', error); // Debug
+        console.error('Settings error:', error);
         this.app.ui.showError('Failed to load settings');
     }
 }
