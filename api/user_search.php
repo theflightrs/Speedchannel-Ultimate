@@ -21,40 +21,52 @@ try {
             throw new Exception('Invalid JSON data');
         }
 
-        $action = $postData['action'] ?? '';
-        $userId = intval($postData['user_id'] ?? 0);
-
-        if ($action === 'delete' && $userId > 0) {
-            // Prevent self-deletion
+        if ($postData['action'] === 'delete' && isset($postData['user_id'])) {
+            $userId = intval($postData['user_id']);
+            
             if ($userId === $_SESSION['user_id']) {
-                throw new Exception('Cannot delete yourself');
+                throw new Exception('Cannot delete your own account');
             }
 
-            $db->beginTransaction();
             try {
-                // Delete user
-                $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
-                $result = $stmt->execute([$userId]);
-                
-                if (!$result) {
-                    throw new Exception('Failed to delete user');
-                }
-                
-                if ($stmt->rowCount() === 0) {
-                    throw new Exception('User not found');
-                }
-
+                $db->beginTransaction();
+            
+                // Delete from channel_users (uses user_id)
+                $db->delete(
+                    "DELETE FROM channel_users WHERE user_id = ?",
+                    [$userId]
+                );
+            
+                // Delete user's messages (uses sender_id based on messages.php)
+                $db->delete(
+                    "DELETE FROM messages WHERE sender_id = ?",
+                    [$userId]
+                );
+            
+                // Delete channels created by user (uses creator_id based on channels.php)
+                $db->delete(
+                    "DELETE FROM channels WHERE creator_id = ?",
+                    [$userId]
+                );
+            
+                // Finally delete the user (uses id)
+                $db->delete(
+                    "DELETE FROM users WHERE id = ?",
+                    [$userId]
+                );
+            
                 $db->commit();
                 echo json_encode(['success' => true]);
-                exit;
+                return;
+            
             } catch (Exception $e) {
                 $db->rollBack();
-                throw $e;
+                throw new Exception('Failed to delete user: ' . $e->getMessage());
             }
         }
     }
 
-    // Rest of your existing GET query code...
+    // GET request handling for user search
     $query = "SELECT id, username, email, is_admin, is_active, last_login, created_at 
               FROM users WHERE 1=1";
     $params = [];
@@ -84,11 +96,7 @@ try {
     };
 
     $users = $db->fetchAll($query, $params);
-
-    echo json_encode([
-        'success' => true,
-        'data' => ['users' => $users]
-    ]);
+    echo json_encode(['success' => true, 'data' => ['users' => $users]]);
 
 } catch (Exception $e) {
     error_log("[User Search] " . $e->getMessage());

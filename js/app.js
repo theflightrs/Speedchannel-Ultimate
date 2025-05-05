@@ -1,3 +1,4 @@
+
 import AdminPanel from './admin.js';
 import Api from './api.js';
 import Auth from './auth.js';
@@ -23,11 +24,11 @@ class App {
             this.userManager = new UserManager(this);
             this.fileManager = new FileManager(this);
             this.modalManager = new ModalManager();
-
+            this.AdminPanel = new AdminPanel(this);
             this.polling = {
                 interval: null,
                 FAST_RATE: 1000,    // 5 seconds when active
-                SLOW_RATE: 5000,   // 15 seconds when inactive
+                SLOW_RATE: 30000,   // 15 seconds when inactive
                 INACTIVE_TIMEOUT: 20000, // 1 minute of no activity
                 lastActivityTime: Date.now()
             };
@@ -262,10 +263,12 @@ class App {
                         this.modalManager.openModal('createChannelModal');
                         break;
 
-                    case 'attach-file':
-                 
+                    case 'attach-file':        
                         break;
-
+                      case 'savecfg':
+                          this.AdminPanel.saveSettings();
+                          this.modalManager.hideAll();
+                          break;
                     case 'send-message':
                         if (this.chat.currentChannel) {
                             this.chat.sendMessage();

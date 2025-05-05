@@ -86,18 +86,20 @@ class AdminPanel {
         
         Object.entries(response.settings).forEach(([key, data]) => {
             const formGroup = document.createElement('div');
-            formGroup.className = 'form-group';
+            formGroup.className = 'settings-group';
             
             if (data.type === 'boolean') {
-                // Checkbox styling matching create channel modal
                 formGroup.innerHTML = `
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" 
-                               id="${key}" 
-                               class="checkbox-input"
-                               ${data.value ? 'checked' : ''}>
-                        <label for="${key}" class="checkbox-label">
-                            ${key.replace(/_/g, ' ').toLowerCase()}
+                    <div class="checkbox-group" style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0;">
+                        <label class="checkbox-wrapper" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                            <span class="checkbox-label">${key.replace(/_/g, ' ').toLowerCase()}</span>
+                            <span class="custom-checkbox">
+                                <input type="checkbox" 
+                                       id="${key}" 
+                                       class="custom-checkbox"
+                                       ${data.value ? 'checked' : ''}>
+                                <span class="checkmark"></span>
+                            </span>
                         </label>
                     </div>
                 `;
@@ -125,10 +127,40 @@ class AdminPanel {
             // Initialize display
             updateFileSize(document.getElementById('MAX_FILE_SIZE').value);
         }
+       
+
 
     } catch (error) {
         console.error('Settings error:', error);
         this.app.ui.showError('Failed to load settings');
+    }
+}
+
+
+async saveSettings() {
+    try {
+        const form = document.getElementById('dynamicSettingsForm');
+        const settings = {};
+        
+        // Collect all inputs and checkboxes
+        form.querySelectorAll('input').forEach(input => {
+            const value = input.type === 'checkbox' ? input.checked : input.value;
+            settings[input.id] = value;
+        });
+
+        // Send to backend
+        const response = await this.app.api.post('/settings.php', { settings });
+        
+        if (response.success) {
+            this.app.ui.showSuccess('Settings saved successfully');
+            // Update any runtime settings if needed
+            if (settings.MAX_FILE_SIZE) window.MAX_FILE_SIZE = settings.MAX_FILE_SIZE;
+        } else {
+            throw new Error(response.message || 'Failed to save settings');
+        }
+    } catch (error) {
+        console.error('Settings save error:', error);
+        this.app.ui.showError('Failed to save settings');
     }
 }
 
@@ -139,6 +171,22 @@ class AdminPanel {
 
     hide() {
         this.stopAutoRefresh();
+    }
+
+    async uploadLogo(file) {
+        const formData = new FormData();
+        formData.append('logo', file);
+        
+        try {
+            const response = await this.app.api.post('/settings.php', formData);
+            if (response.success) {
+                this.app.ui.showSuccess('Logo uploaded successfully');
+                // Update logo in UI
+                document.getElementById('logo').style.backgroundImage = `url('${SITE_LOGO}?t=${Date.now()}')`;
+            }
+        } catch (error) {
+            this.app.ui.showError('Failed to upload logo');
+        }
     }
 
     startAutoRefresh() {
@@ -280,19 +328,7 @@ loadTabData(tabName) {
     }
 
     async terminateSession(sessionId) {
-        if (!confirm('Are you sure you want to terminate this session?')) {
-            return;
-        }
-
-        try {
-            await Api.request(`/sessions.php?id=${sessionId}`, {
-                method: 'DELETE'
-            });
-            this.loadSessions();
-        } catch (error) {
-            console.error('Failed to terminate session:', error);
-            Utils.showError('adminError', 'Failed to terminate session');
-        }
+       
     }
 
     async searchUsers() {
@@ -304,13 +340,13 @@ loadTabData(tabName) {
                 sort: document.getElementById('sortBy')?.value || 'username'
             });
     
-            const response = await this.app.api.get(`user_search.php?${params.toString()}`);
+            const response = await this.app.api.get(`/user_search.php?${params.toString()}`);
             if (!response.success) throw new Error(response.message);
             
             const resultsDiv = document.getElementById('userSearchResults');
             if (!resultsDiv) return;
     
-            // Clear existing content and listeners
+            // Clear existing content
             resultsDiv.innerHTML = '';
             
             response.data.users.forEach(user => {
@@ -320,30 +356,41 @@ loadTabData(tabName) {
                 userRow.dataset.userId = user.id;
                 
                 userRow.innerHTML = `
-                    <div class="user-info">
-                        <span>${this.escapeHtml(user.username)}</span>
-                        <span class="status ${user.is_active ? 'active' : 'inactive'}">
-                            ${user.is_active ? '●' : '○'}
-                        </span>
-                        ${user.is_admin ? ' 🛡️' : ''}
-                    </div>
-                    ${!isCurrentUser ? `
-                        <div class="user-actions">
-                        <button class="remove-user delete-user" data-user-id="${user.id}">Delete</button>
-                        <button class="remove-user toggle-ban" data-user-id="${user.id}">
+                <div class="user-info">
+                    <span>${this.escapeHtml(user.username)}</span>
+                    <span class="status ${user.is_active ? 'active' : 'inactive'}">
+                        ${user.is_active ? '●' : '○'}
+                    </span>
+                    ${user.is_admin ? ' 🛡️' : ''}
+                </div>
+                ${!isCurrentUser ? `
+                    <div class="user-actions">
+                        <button class="remove-user delete-user" data-action="delete" data-user-id="${user.id}">Delete</button>
+                        <button class="remove-user toggle-ban" data-action="toggle-ban" data-user-id="${user.id}">
                             ${user.is_banned ? 'Unban' : 'Ban'}
-                            </button>
-                        </div>
-                    ` : ''}
-                `;
-    
-                // Add delete listener
-                const deleteBtn = userRow.querySelector('.delete-user');
-                if (deleteBtn) {
-                    deleteBtn.onclick = () => this.deleteUser(user.id);
-                }
+                        </button>
+                    </div>
+                ` : ''}
+            `;
     
                 resultsDiv.appendChild(userRow);
+            });
+    
+            // Add single event listener for the results container
+            resultsDiv.addEventListener('click', async (e) => {
+                const btn = e.target.closest('button[data-action]');
+                if (!btn) return;
+    
+                const userId = btn.dataset.userId;
+                const action = btn.dataset.action;
+    
+                if (action === 'delete' && userId) {
+                    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                        await this.deleteUser(userId);
+                    }
+                } else if (action === 'toggle-ban' && userId) {
+                    await this.toggleUserBan(userId);
+                }
             });
     
         } catch (error) {
@@ -360,11 +407,7 @@ loadTabData(tabName) {
         const action = button.dataset.action;
     
         switch (action) {
-            case 'delete-user':
-                if (await this.confirmDelete(userId)) {
-                    await this.deleteUser(userId);
-                }
-                break;
+            
             case 'toggle-ban':
                 await this.toggleUserBan(userId);
                 break;
@@ -423,26 +466,26 @@ loadTabData(tabName) {
 
     async deleteUser(userId) {
         try {
-            if (await this.confirmDelete(userId)) {
-                const response = await this.app.api.post('/user_search.php', {
-                    action: 'delete',
-                    user_id: userId
-                });
-    
-                if (response.success) {
-                    await this.searchUsers(); // Reload the list
-                    this.app.ui.showSuccess('User deleted successfully');
-                }
+            const response = await this.app.api.post('/user_search.php', {
+                action: 'delete',
+                user_id: parseInt(userId)
+            });
+            
+            if (response.success) {
+                await this.searchUsers(); // Reload the list
+                this.app.ui.showSuccess('User deleted successfully');
+            } else {
+                throw new Error(response.message || 'Failed to delete user');
             }
         } catch (error) {
             console.error('Delete error:', error);
-            this.app.ui.showError(error.message || 'Failed to delete user');
+            this.app.ui.showError('Failed to delete user');
         }
     }
     
     async toggleUserBan(userId) {
         try {
-            const response = await this.app.api.post('user_search.php', {
+            const response = await this.app.api.post('/user_search.php', {
                 action: 'toggle_ban',
                 user_id: userId
             });

@@ -23,7 +23,7 @@ error_log("[INDEX] Security instance created")
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#151b26"/>
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>JUMP Chat</title>
+    <title><?php echo SITE_NAME; ?></title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/modal.css">
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon"/>
@@ -39,13 +39,13 @@ error_log("[INDEX] Security instance created")
     </script>
 </head>
 <body>
-    <div id="app">
-        <!-- Sidebar -->
-        <div id="sidebar">
-            <a href="https://www.graviton.at/chat2/">
-                <div id="appIntro">
-                    <div id="logo"></div>
-                    <div id="appName">SpeedChannel</div>
+<div id="app">
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <a href="<?php echo BASE_PATH; ?>">
+            <div id="appIntro">
+                <div id="logo" style="background-image: url('<?php echo SITE_LOGO; ?>')"></div>
+                <div id="appName"><?php echo SITE_NAME; ?></div>
                 </div>
             </a>
             
@@ -279,11 +279,11 @@ error_log("[INDEX] Security instance created")
 
             <!-- Settings Tab -->
             <div class="tab-content" id="settingsTab" hidden>
-                <h3>System Settings</h3>
+                <h3>System Settings</h3>             
                 <div class="settings-form" id="dynamicSettingsForm">
                     <!-- Settings will be dynamically inserted here -->
                 </div>
-                <button class="btn primary" id="saveSettings">Save Settings</button>
+                <button class="btn primary" id="saveSettings" data-action="savecfg">Save Settings</button>
             </div>
         </div>
     </div>

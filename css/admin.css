@@ -279,6 +279,11 @@
         margin-top: 15px;
     }
 
+.settings-group {
 
+display: flex;
+color: white;
+background: black;
+}
 
 }
