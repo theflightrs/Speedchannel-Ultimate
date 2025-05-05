@@ -27,9 +27,9 @@ class App {
             this.AdminPanel = new AdminPanel(this);
             this.polling = {
                 interval: null,
-                FAST_RATE: 1000,   
-                SLOW_RATE: 10000,   
-                INACTIVE_TIMEOUT: 20000,
+                FAST_RATE: window.FAST_RATE,   
+                SLOW_RATE: window.SLOW_RATE,   
+                INACTIVE_TIMEOUT: window.INACTIVE_TIMEOUT,
                 lastActivityTime: Date.now()
             };
 
@@ -38,6 +38,16 @@ class App {
     
             this.setupErrorHandling();
             this.setupEventDelegation();
+
+            const checkSession = () => {
+                if (window.lastActivity && (Date.now() - window.lastActivity) > (SESSION_LIFETIME)) {
+                    this.auth.logout();
+                    window.location.reload();
+                }
+            };
+            
+            setInterval(checkSession, 5000);
+            
 
         } catch (error) {
             console.error('Failed to initialize application:', error);
@@ -101,6 +111,9 @@ class App {
                     this.startPolling()
                 ]);
 
+        
+
+               
                 
             }
         } catch (error) {
@@ -132,6 +145,7 @@ class App {
                 this.channels.loadPendingInvitations(),
                 // Add chat message polling if in a channel
                 this.chat.currentChannel ? this.chat.checkNewMessages(this.chat.currentChannel) : Promise.resolve()
+                
             ]);
             
             // Use chat's activity state to determine poll rate
@@ -163,13 +177,14 @@ class App {
 
 
     setupEventDelegation() {
+        document.addEventListener('mousemove', () => window.lastActivity = Date.now());
+        document.addEventListener('keydown', () => window.lastActivity = Date.now());
         document.addEventListener('click', (e) => {
-            const target = e.target.closest('[data-action]');
+            const target = e.target.closest('[data-action]');      
             if (!target) {
                 console.log('No data-action found on clicked element');
                 return;
-            }
-    
+            }     
             console.log('Action clicked:', target.dataset.action); // Debug
             e.preventDefault();
             const action = target.dataset.action;
@@ -315,6 +330,7 @@ class App {
                             console.warn('Message ID is missing for manual-delete action');
                         }
                         break;
+                        
 
                     default:
                         console.warn('Unhandled action:', action);
@@ -369,7 +385,7 @@ class App {
     handleLogout() {
         this.log('Ensuring complete logout...');
         this.stopPolling();
-
+        this.modalManager.hideAll();
         if (this.chat) {
             this.chat.currentChannel = null;
         }
@@ -406,6 +422,8 @@ class App {
             console[level](`[${new Date().toISOString()}] ${message}`);
         }
     }
+
+     
 }
 
 document.addEventListener('DOMContentLoaded', () => {

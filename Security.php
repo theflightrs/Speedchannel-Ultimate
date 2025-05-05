@@ -4,8 +4,6 @@ require_once('config.php');
 class Security {
     private static $instance = null;
     
-    private const SESSION_LIFETIME = 3600; // 1 hour
-    
     private function __construct() {
         $this->initSession();
         $this->setSecurityHeaders();
@@ -43,12 +41,13 @@ class Security {
         // header("X-Frame-Options: DENY");
         // header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
     }
-
+    
     private function checkSessionSecurity() {
         if (isset($_SESSION['last_activity']) && 
-            (time() - $_SESSION['last_activity'] > self::SESSION_LIFETIME)) {
+            (time() - $_SESSION['last_activity'] > SESSION_LIFETIME)) {
             $this->logout();
-            throw new Exception('Session expired');
+            header('Location: index.php');
+            exit();
         }
         $this->updateLastActivity();
     }
@@ -69,8 +68,7 @@ class Security {
     public function logout() {
         $_SESSION = array();
         if (isset($_COOKIE[session_name()])) {
-            setcookie(session_name(), '', time()-3600, '/', null, true, true);
-        }
+            setcookie(session_name(), '', time()-3600, '/', '', true, true);        }
         session_destroy();
     }
 

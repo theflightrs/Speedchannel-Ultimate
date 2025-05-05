@@ -47,6 +47,11 @@ try {
             }
             $result = handleListChannels($db, $userId);
             break;
+            case 'count':
+                $userId = $_GET['user_id'];
+                $count = $db->fetchOne("SELECT COUNT(*) as count FROM channels WHERE creator_id = ?", [$userId]);
+                echo json_encode(['success' => true, 'count' => $count['count']]);
+                break;
 			case 'update':
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         http_response_code(405);
@@ -267,6 +272,13 @@ function handleListChannels($db, $userId) {
  * @throws Exception If validation fails or database operation fails.
  */
 function handleCreateChannel($db, $data, $userId) {
+
+    $count = $db->fetchOne("SELECT COUNT(*) as count FROM channels WHERE creator_id = ?", [$userId]);
+    
+    if ($count['count'] >= MAX_CHANNELS_PER_USER) {
+        throw new Exception("You can only create up to " . MAX_CHANNELS_PER_USER . " channels");
+        
+    }
     // --- Input Validation ---
 	 $name = trim($data['name'] ?? '');
     $is_private = $data['is_private'] ?? true;

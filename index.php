@@ -9,14 +9,11 @@ if (session_status() === PHP_SESSION_NONE) {
     error_log("[INDEX] Started new session: " . session_id());
 }
 
-error_log("[INDEX] Including Security.php");
 require_once('Security.php');
-error_log("[INDEX] Security.php included");
+
 
 $security = Security::getInstance();
-error_log("[INDEX] Security instance created");
-$csrfToken = $security->generateCsrfToken(); // Add this line
-error_log("[INDEX] Security instance created")
+$csrfToken = $security->generateCsrfToken();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -35,10 +32,15 @@ error_log("[INDEX] Security instance created")
         }
     </style>
     <script nonce="<?php echo htmlspecialchars($csrfToken); ?>">
-        window.CSRF_TOKEN = "<?php echo htmlspecialchars($csrfToken); ?>";
-        window.MAX_FILE_SIZE = <?php echo MAX_FILE_SIZE; ?>;
-        window.ALLOWED_MIME_TYPES = <?php echo json_encode(ALLOWED_MIME_TYPES); ?>;
-    </script>
+    window.CSRF_TOKEN = "<?php echo htmlspecialchars($csrfToken); ?>";
+    window.SESSION_LIFETIME = <?php echo SESSION_LIFETIME; ?>;
+    window.MAX_FILE_SIZE = <?php echo MAX_FILE_SIZE; ?>;
+    window.ALLOWED_MIME_TYPES = <?php echo json_encode(ALLOWED_MIME_TYPES); ?>;
+    window.MAX_CHANNELS_PER_USER = <?php echo MAX_CHANNELS_PER_USER; ?>;
+    window.FAST_RATE = <?php echo FAST_RATE; ?>;
+    window.SLOW_RATE = <?php echo SLOW_RATE; ?>;
+    window.INACTIVE_TIMEOUT = <?php echo INACTIVE_TIMEOUT; ?>;
+</script>
 </head>
 <body>
 <div id="app">
@@ -403,6 +405,14 @@ error_log("[INDEX] Security instance created")
                 </div>
             </div>
         </div>
+
+        <div id="messageModal" class="modal" hidden>
+    <div class="modal-content">
+        <span class="close" data-modal="messageModal">&times;</span>
+        <div id="messageModalText" class="message-text"></div>
+        <button class="modal-buttons" onclick="app.modalManager.closeModal('messageModal')">OK</button>
+    </div>
+</div>
 
    <!-- Lightbox -->
    <div class="lightbox" style="display: none;">

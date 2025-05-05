@@ -9,6 +9,7 @@ class AuthState {
         };
         this._listeners = new Set();
         this._initializeSession(); // Unified session initialization
+        
     }
 
     async _initializeSession() {
@@ -91,4 +92,7 @@ class AuthState {
         };
         this._notifyListeners();
     }
+
+
+
 }

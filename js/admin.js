@@ -153,7 +153,7 @@ async saveSettings() {
         
         if (response.success) {
             this.app.ui.showSuccess('Settings saved successfully');
-            // Update any runtime settings if needed
+            window.location.reload();
             if (settings.MAX_FILE_SIZE) window.MAX_FILE_SIZE = settings.MAX_FILE_SIZE;
         } else {
             throw new Error(response.message || 'Failed to save settings');

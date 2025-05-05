@@ -189,6 +189,7 @@ class ChannelManager {
         const isPrivate = document.getElementById('channelPrivate').checked;
         const isDiscoverable = document.getElementById('channelDiscoverable').checked;
 
+
         try {
             const response = await this.createChannel({
                 name: channelName,
@@ -202,7 +203,7 @@ class ChannelManager {
                 document.getElementById('channelName').value = '';
             }
         } catch (error) {
-            this.app.handleError(error);
+            this.app.ui.showError(error.message); // This will properly display the error
         }
     }
 
@@ -367,6 +368,19 @@ class ChannelManager {
     
 
     async createChannel(data) {
+
+        const countResponse = await this.app.api.get('/channels.php', { 
+            action: 'count',
+            user_id: this.app.currentUser.id 
+        });
+
+        if (countResponse.count >= window.MAX_CHANNELS_PER_USER) {
+            document.getElementById('messageModalText').textContent = 
+                `You can only create up to ${window.MAX_CHANNELS_PER_USER} channels`;
+            this.app.modalManager.show('messageModal');
+            return;
+        }
+
         return await this.app.api.post('/channels.php', {
             action: 'create',
             name: data.name,

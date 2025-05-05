@@ -114,23 +114,39 @@ class UI {
         document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     }
 
-    showError(message, duration = 5000) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-toast';
-        errorDiv.textContent = message;
-        document.body.appendChild(errorDiv);
-
-        setTimeout(() => errorDiv.remove(), duration);
+    showModalMessage(message) {
+        document.getElementById('messageModalText').textContent = message;
+        this.app.modalManager.show('messageModal');
     }
 
-    showSuccess(message, duration = 3000) {
-        const successDiv = document.createElement('div');
-        successDiv.className = 'success-toast';
-        successDiv.textContent = message;
-        document.body.appendChild(successDiv);
 
-        setTimeout(() => successDiv.remove(), duration);
+    showModalMessage(message) {
+        this.app.modalManager.hideAll();
+
+        document.getElementById('messageModalText').textContent = message;
+        this.app.modalManager.show('messageModal');
     }
+
+    // Toast for notifications that auto-dismiss
+    showToast(message, type = 'error', duration = 5000) {
+        const toastDiv = document.createElement('div');
+        toastDiv.className = `toast ${type}-toast`;
+        toastDiv.textContent = message;
+        document.body.appendChild(toastDiv);
+
+        setTimeout(() => toastDiv.remove(), duration);
+    }
+
+    // Helper methods for specific types
+    showError(message, isModal = false) {
+        this.app.modalManager.hideAll();
+        isModal ? this.showModalMessage(message) : this.showToast(message, 'error');
+    }
+
+    showSuccess(message) {
+        this.showToast(message, 'success', 3000);
+    }
+
 }
 
 export default UI;

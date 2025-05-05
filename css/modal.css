@@ -49,6 +49,7 @@
     display: none;
 }
 
+
 .modal-buttons {
 	width: 100%;
 	padding: 10px;
@@ -86,4 +87,28 @@
 
 .modal::-webkit-scrollbar-thumb {
   background: #354c71;
+}
+
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 24px;
+  border-radius: 4px;
+  color: white;
+  z-index: 1000;
+  animation: fadeIn 0.3s;
+}
+
+.error-toast {
+  background-color: #dc3545;
+}
+
+.success-toast {
+  background-color: #28a745;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
