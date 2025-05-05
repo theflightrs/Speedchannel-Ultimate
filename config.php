@@ -1,9 +1,21 @@
 <?php
+/* You can conveniently edit your config in the admin panel, 
+but is it recommended to do it here in case saving creates 
+parsing errors or wrongly formatted arrays etc.. */ 
 
 // Prevent direct access
 if (!defined('SECURE_ENTRY')) {
     die('Direct access not permitted');
 }
+
+// Auto-detect base path
+// Only for the logo link
+define('BASE_PATH', rtrim(dirname(dirname($_SERVER['PHP_SELF'])), '/'));
+
+// Basics
+define('SITE_NAME', 'TestChan');
+define('SITE_LOGO', 'logo.png');
+
 // Database configuration
 // Enter your credentials between ''
 define('DB_HOST', '');
@@ -20,7 +32,7 @@ define('ENABLE_ACTIVITY_LOGGING', false);
 // Password reset settings
 define('PASSWORD_RESET_TIMEOUT', 3600); // 1 hour
 define('MAIL_FROM', 'noreply@yourdomain.com');
-define('MAIL_FROM_NAME', 'Speedchannel');
+define('MAIL_FROM_NAME', 'TestChat');
 
 // Security configuration
 define('SESSION_LIFETIME', 3600); // 1 hour
@@ -28,8 +40,12 @@ define('CSRF_TIMEOUT', 7200);     // 2 hours
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_TIMEOUT', 900);     // 15 minutes
 define('ENCRYPTION_ALGORITHM', 'aes-256-gcm');
-define('HASH_ALGO', PASSWORD_ARGON2ID);
+define('HASH_ALGO', 'argon2id');
 define('ENCRYPTION_KEY', 'your-secure-random-key-here');
+
+// Channel configuration
+define('MAX_CHANNELS_PER_USER', 10);
+define('MAX_MESSAGES_LOAD', 50);
 
 // File upload configuration
 define('UPLOAD_DIR', realpath(__DIR__ . '/uploads/') . DIRECTORY_SEPARATOR);
@@ -42,12 +58,8 @@ define('ALLOWED_MIME_TYPES', [
     'text/plain'
 ]);
 
-// Channel configuration
-define('MAX_CHANNELS_PER_USER', 10);
-define('MAX_MESSAGES_LOAD', 50);
-
 // Error reporting in development
-define('DEV_MODE', false);
+define('DEV_MODE', true);
 if (DEV_MODE) {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
@@ -56,4 +68,4 @@ if (DEV_MODE) {
     ini_set('display_errors', 0);
 }
 
-?>
+
