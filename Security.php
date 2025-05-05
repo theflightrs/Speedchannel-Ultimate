@@ -3,6 +3,7 @@ require_once('config.php');
 
 class Security {
     private static $instance = null;
+    
     private const SESSION_LIFETIME = 3600; // 1 hour
     
     private function __construct() {

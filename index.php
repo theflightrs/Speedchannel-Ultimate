@@ -14,6 +14,8 @@ require_once('Security.php');
 error_log("[INDEX] Security.php included");
 
 $security = Security::getInstance();
+error_log("[INDEX] Security instance created");
+$csrfToken = $security->generateCsrfToken(); // Add this line
 error_log("[INDEX] Security instance created")
 ?>
 <!DOCTYPE html>
@@ -107,8 +109,8 @@ error_log("[INDEX] Security instance created")
                     </div>
                 </div>
 
+                
                 <div id="attachmentPreview" class="preview"></div>
-
                 <div id="messageInputArea" hidden>
                     <div class="input-container">
                         <button class="attachFilesbtn" data-action="attach-file">
@@ -119,8 +121,12 @@ error_log("[INDEX] Security instance created")
                         <button id="sendMessageBtn" class="sendBtn" data-action="send-message">Send</button>
                     </div>
                 </div>
+
+
             </div>
         </div>
+
+        
 
 
  <!-- Auth Section -->

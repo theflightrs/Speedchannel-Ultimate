@@ -27,9 +27,9 @@ class App {
             this.AdminPanel = new AdminPanel(this);
             this.polling = {
                 interval: null,
-                FAST_RATE: 1000,    // 5 seconds when active
-                SLOW_RATE: 30000,   // 15 seconds when inactive
-                INACTIVE_TIMEOUT: 20000, // 1 minute of no activity
+                FAST_RATE: 1000,   
+                SLOW_RATE: 10000,   
+                INACTIVE_TIMEOUT: 20000,
                 lastActivityTime: Date.now()
             };
 
