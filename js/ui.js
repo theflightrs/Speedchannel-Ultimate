@@ -4,6 +4,8 @@ class UI {
             this.authState = AuthState.getInstance();
             // Only listen for auth state changes, don't manage them
             this.authState.addListener(this.updateAuthState.bind(this));
+            this.activeToasts = [];
+            this.shownToasts = new Set();
     }
 
     
@@ -118,33 +120,56 @@ class UI {
         document.getElementById('messageModalText').textContent = message;
         this.app.modalManager.show('messageModal');
     }
+    
 
+    clearToasts() {
+        this.activeToasts.forEach(toast => toast.remove());
+        this.activeToasts = [];
+    }
 
     showModalMessage(message) {
-        this.app.modalManager.hideAll();
+
+      //  this.app.modalManager.hideAll();
 
         document.getElementById('messageModalText').textContent = message;
         this.app.modalManager.show('messageModal');
     }
 
+    
+
     // Toast for notifications that auto-dismiss
-    showToast(message, type = 'error', duration = 5000) {
+    showToast(message, type = 'error', duration = 100000, uniqueFor = 10000) { 
+        const now = Date.now();
+        const key = `${message}_${type}`;
+
+        if (this.shownToasts.has(key)) {
+            return;
+        }
+
+        this.clearToasts();
         const toastDiv = document.createElement('div');
         toastDiv.className = `toast ${type}-toast`;
         toastDiv.textContent = message;
-        document.body.appendChild(toastDiv);
+        document.getElementById('toast-container').appendChild(toastDiv);
+        this.activeToasts.push(toastDiv);
+        
+        this.shownToasts.add(key);
+        setTimeout(() => this.shownToasts.delete(key), uniqueFor);
 
-        setTimeout(() => toastDiv.remove(), duration);
+        setTimeout(() => {
+            toastDiv.remove();
+            this.activeToasts = this.activeToasts.filter(t => t !== toastDiv);
+        }, duration);
     }
 
     // Helper methods for specific types
     showError(message, isModal = false) {
-        this.app.modalManager.hideAll();
+       // this.app.modalManager.hideAll();
         isModal ? this.showModalMessage(message) : this.showToast(message, 'error');
     }
 
     showSuccess(message) {
-        this.showToast(message, 'success', 3000);
+        this.showToast(message, 'success', 30000);
     }
 
 }

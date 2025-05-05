@@ -288,8 +288,8 @@ function handleCreateChannel($db, $data, $userId) {
     if (empty($name)) {
         throw new Exception('Channel name is required.');
     }
-    if (mb_strlen($name) > 50) { // Use mb_strlen for multi-byte character safety
-        throw new Exception('Channel name must be 50 characters or less.');
+    if (mb_strlen($name) > 40) { // Use mb_strlen for multi-byte character safety
+        throw new Exception('Channel name must be 40 characters or less.');
     }
 
     // *** CORRECT HANDLING OF is_private ***

@@ -107,10 +107,10 @@ class ChannelManager {
             manageUsersBtn.addEventListener('click', () => {
                 this.app.modalManager.hideAll();
                 this.app.modalManager.openModal('manageUsersModal');
-
+              
                 // Use the debounced version of loadChannelUsers
                 if (!this.modalLoaded) {
-                    this.debounce(() => this.loadChannelUsers(), 300)();
+                    this.debounce(() => this.loadChannelUsers(), 100)();
                     this.modalLoaded = true; // Prevent multiple calls
                     
                 }
@@ -353,17 +353,28 @@ class ChannelManager {
             });
     
             if (response.success) {
-                this.app.ui.showSuccess(accepted ? 'Joined channel' : 'Invitation declined');
                 if (accepted) {
+                    // First load channels to ensure we have the new channel data
                     await this.loadChannels();
-                    await this.loadChannelUsers(); // Refresh users list
+                    
+                    // If channel_id is in the response, switch to it
+                    if (response.channel_id) {
+                        this.currentChannel = response.channel_id;
+                        await this.switchChannel(response.channel_id);
+                    }
                 }
+    
+                // Show toast after channel operations are complete
+                this.app.ui.showToast(
+                    accepted ? 'Joined channel' : 'Invitation declined', 
+                    'success', 
+                    10000
+                );
             }
         } catch (error) {
             this.app.handleError(error);
         }
     }
-
 
     
 
@@ -394,8 +405,22 @@ class ChannelManager {
         const spinner = document.querySelector('.spinner');
         try {
             if (response.success) {
+                // Check for newly accessible channels
+                if (this.channels.length > 0) {  // Only check if we had previous channels loaded
+                    const previouslyLocked = new Set(
+                        this.channels
+                            .filter(ch => ch.is_private && !ch.has_access)
+                            .map(ch => ch.id)
+                    );
+                    
+                    response.channels.forEach(newChan => {
+                        if (previouslyLocked.has(newChan.id) && newChan.has_access) {
+                            this.app.ui.showToast(`Access granted to #${newChan.name}`, 'success', 5000);
+                        }
+                    });
+                }
+                
                 this.channels = response.channels || [];
-                console.log('Loaded channels:', this.channels);
                 this.renderChannelList();
                 if (spinner) {
                     spinner.style.display = 'none';
@@ -565,7 +590,7 @@ class ChannelManager {
     
             // Reload channels if accepted
             if (accepted) {
-                await this.loadChannels();
+              //  await this.loadChannels();
             }
         });
     }
@@ -632,21 +657,33 @@ class ChannelManager {
         }
     }
 
-
-renderInvitationsList(invitations) {
-    const list = document.getElementById('invitationList');
-    if (!list) return;
+    renderInvitationsList(invitations) {
+        const list = document.getElementById('invitationList');
+        if (!list) return;
+        
+        // Compare channel names to detect new invitations
+        const currentChannels = new Set(invitations.map(inv => inv.channel_name));
+        const previousChannels = new Set(this.cache.invitations?.map(inv => inv.channel_name) || []);
+        
+        // Show toast for new channels only
+        currentChannels.forEach(channel => {
+            if (!previousChannels.has(channel)) {
+                this.app.ui.showToast(`New invitation to #${this.escapeHtml(channel)}`, 'success', 10000);
+            }
+        });
     
-    list.innerHTML = invitations.map(inv => `
-        <div class="invitation-item" data-message-id="${inv.id}">
-           <div class="chanName">${this.escapeHtml(inv.channel_name)}</div><br>
-            <div class="invitation-buttons"> 
-                <button class="accept-invite" data-action="accept-invitation" data-message-id="${inv.id}">Accept</button>
-                <button class="decline-invite" data-action="decline-invitation" data-message-id="${inv.id}">Decline</button>
+        // Render list and update cache
+        list.innerHTML = invitations.map(inv => `
+            <div class="invitation-item" data-message-id="${inv.id}">
+               <div class="chanName">${this.escapeHtml(inv.channel_name)}</div><br>
+                <div class="invitation-buttons"> 
+                    <button class="accept-invite" data-action="accept-invitation" data-message-id="${inv.id}">Accept</button>
+                    <button class="decline-invite" data-action="decline-invitation" data-message-id="${inv.id}">Decline</button>
+                </div>
             </div>
-        </div>
-    `).join('') || '<p class="no-invites">No pending invitations</p>';
-}
+        `).join('') || '<p class="no-invites">No pending invitations</p>';
+    }
+
 
 
 async pollUserLists() {
@@ -718,6 +755,7 @@ hasChannelsChanged(newChannels) {
 
 hasInvitationsChanged(newInvitations) {
     return JSON.stringify(this.cache.invitations) !== JSON.stringify(newInvitations);
+    
 }
 
 

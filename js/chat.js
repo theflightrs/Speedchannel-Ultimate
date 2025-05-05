@@ -389,8 +389,12 @@ async handleKnockResponse(messageId, accepted) {
             if (accepted) {
                 // Refresh channel data
                 await this.app.channels.loadChannels();
+
+                
                 // Refresh messages
                 await this.loadMessages(this.currentChannel);
+                this.app.ui.showToast(`New invitation to #${this.escapeHtml(channel)}`, 'success', 10000);
+
             }
         }
     } catch (error) {
@@ -513,6 +517,8 @@ async handleKnockResponse(messageId, accepted) {
             setTimeout(() => {
                 sendButton.disabled = false;
             }, 1000);
+            messageDisplay.scrollTop = messageDisplay.scrollHeight;
+
         }
     }
 

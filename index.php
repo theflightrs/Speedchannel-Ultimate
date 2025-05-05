@@ -85,16 +85,19 @@ $csrfToken = $security->generateCsrfToken();
         <!-- Main Chat Interface -->
         <div id="chatInterface">
             <div id="mainContent">
+        
                 <div id="channelInfo" hidden>
-                    <h2 id="currentChannelTitle"></h2>
+                    <h2 id="currentChannelTitle"></h2>  
+
                     <div id="channel-controls" class="channel-controls" hidden>
                         <button id="manageUsersBtn" data-action="manage-users" disabled>Manage Users</button>
                         <button id="channelSettingsBtn" data-action="show-channel-settings" disabled>
                             <span class="icon">⚙</span>
                         </button>
-                    </div>
+                       
+                    </div>                       
                 </div>
-
+             
                 <template id="knockMessageTemplate">
                     <div class="knock-request">
                         <span class="user"></span> is requesting to join
@@ -109,6 +112,7 @@ $csrfToken = $security->generateCsrfToken();
                             <div></div><div></div><div></div><div></div><div></div>
                         </div>
                     </div>
+                    <div id="toast-container"></div> 
                 </div>
 
                 
@@ -124,7 +128,7 @@ $csrfToken = $security->generateCsrfToken();
                     </div>
                 </div>
 
-
+               
             </div>
         </div>
 
