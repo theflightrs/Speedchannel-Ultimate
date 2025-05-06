@@ -360,7 +360,7 @@ $csrfToken = $security->generateCsrfToken();
                     </div>
                     <div class="modal-buttons">
                         <button type="button" data-action="close-modal">Cancel</button>
-                        <button type="submit">Create</button>
+                        <button type="submit" class="green">Create</button>
                     </div>
                 </form>
             </div>

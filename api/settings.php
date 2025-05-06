@@ -12,15 +12,24 @@ if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
     exit;
 }
 
+// Read config.php values
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $configFile = file_get_contents(__DIR__ . '/../config.php');
     preg_match_all("/define\('([^']+)',\s*([^)]+)\)/", $configFile, $matches);
     
     $settings = [];
     $excludedSettings = [
+
+        /*  CONFIG.PHP VALUE EXCLUSION LIST!
+
+           You should NOT make these editable in the frontend
+           because they are sensitive and can break your site. 
+           Make these changes directly in your config.php instead. */
+
         'DB_HOST', 'DB_USER', 'DB_PORT', 'DB_PASSWORD', 'DB_NAME',
         'UPLOAD_DIR', 'ENCRYPTION_KEY', 'HASH_ALGO', 'ENCRYPTION_ALGORITHM',
-         'AUTO_URL', 'CSRF_TIMEOUT', 'ENABLE_USER_SEARCH', 'ENABLE_SESSION_MANAGEMENT', 'ENABLE_ACTIVITY_LOGGING', 'ALLOWED_MIME_TYPES'
+         'AUTO_URL', 'CSRF_TIMEOUT', 'ENABLE_USER_SEARCH', 'ENABLE_SESSION_MANAGEMENT', 'ENABLE_ACTIVITY_LOGGING', 
+         'ALLOWED_MIME_TYPES', 'INTERVAL'
     ];
 
     for ($i = 0; $i < count($matches[1]); $i++) {

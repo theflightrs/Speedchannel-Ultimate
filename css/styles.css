@@ -66,6 +66,11 @@
     background-color: #546b8c;
     cursor: not-allowed;
   }
+
+  .green {
+
+    background-color: #3c5c05;
+  }
   
   /* ============================================
      LAYOUT & APP STRUCTURE
@@ -326,7 +331,8 @@
   }
   
   #channelInfo {
-    padding: 15px;
+    padding-left: 15px;
+    padding-right: 15px;
     border-bottom: 1px solid #2c3648;
     display: flex;
     justify-content: space-between;
@@ -456,7 +462,6 @@
   }
   
   .sendBtn {
-    width: 10%;
     padding: 20px;
   }
   

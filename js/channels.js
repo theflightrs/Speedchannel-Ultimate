@@ -110,7 +110,7 @@ class ChannelManager {
               
                 // Use the debounced version of loadChannelUsers
                 if (!this.modalLoaded) {
-                    this.debounce(() => this.loadChannelUsers(), 100)();
+                    this.debounce(() => this.loadChannelUsers(), 50)();
                     this.modalLoaded = true; // Prevent multiple calls
                     
                 }
@@ -405,22 +405,8 @@ class ChannelManager {
         const spinner = document.querySelector('.spinner');
         try {
             if (response.success) {
-                // Check for newly accessible channels
-                if (this.channels.length > 0) {  // Only check if we had previous channels loaded
-                    const previouslyLocked = new Set(
-                        this.channels
-                            .filter(ch => ch.is_private && !ch.has_access)
-                            .map(ch => ch.id)
-                    );
-                    
-                    response.channels.forEach(newChan => {
-                        if (previouslyLocked.has(newChan.id) && newChan.has_access) {
-                            this.app.ui.showToast(`Access granted to #${newChan.name}`, 'success', 5000);
-                        }
-                    });
-                }
-                
                 this.channels = response.channels || [];
+                console.log('Loaded channels:', this.channels);
                 this.renderChannelList();
                 if (spinner) {
                     spinner.style.display = 'none';
