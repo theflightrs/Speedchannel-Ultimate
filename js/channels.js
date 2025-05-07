@@ -118,8 +118,6 @@ class ChannelManager {
     }
 
        
-
-       
         document.addEventListener('click', async (e) => {
             const action = e.target.dataset.action;
             const button = e.target;
@@ -139,6 +137,12 @@ class ChannelManager {
                 button.classList.remove('pending-invite');  // Just remove pending-invite
             }
         });
+
+        const kickedChannel = localStorage.getItem('kickedChannel');
+        if (kickedChannel) {
+            this.app.ui.showToast(`You no longer have access to #${this.escapeHtml(kickedChannel)}`, 'error');
+            localStorage.removeItem('kickedChannel');
+        }
     } // End of initializeEventListeners
 
 
@@ -443,7 +447,6 @@ class ChannelManager {
                 const creatorBadge = isCreator ? ' 👑' : '';
                 const adminBadge = isAdmin && !isCreator ? ' 🛡️' : '';
     
-                // Fixing template literal syntax
                 return `
                     <div class="channel-item" 
                         data-channel-id="${ch.id}"
@@ -457,6 +460,16 @@ class ChannelManager {
             })
             .filter(html => html)
             .join('');
+    
+            if (this.currentChannel) {
+                const channel = this.channels.find(ch => ch.id === parseInt(this.currentChannel));
+                if (!channel?.has_access) {
+                    localStorage.setItem('kickedChannel', channel.name); // Store channel name
+                    window.location.reload();
+                this.app.ui.showToast('You no longer have access to this channel', 'error');
+
+                }
+            }
     }
 
     clearChannels() {
@@ -514,7 +527,7 @@ class ChannelManager {
             this.app.modalManager.hideAll();
             this.currentChannel = channel.id;
             this.app.chat.currentChannel = channel.id;
-            document.getElementById('currentChannelTitle').textContent = `# ${this.escapeHtml(channel.name)}`;
+            document.getElementById('currentChannelTitle').textContent = `${this.escapeHtml(channel.name)}`;
             document.getElementById('channelInfo').hidden = false;
             document.getElementById('channel-controls').hidden = false;
 

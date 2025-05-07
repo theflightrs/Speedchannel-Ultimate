@@ -667,6 +667,9 @@ if (!$channel || ($channel['creator_id'] != $_SESSION['user_id'] && !$_SESSION['
             throw $e;
         }
     }
+
+
+    
 }
 
 $handler = new ChannelUserHandler();

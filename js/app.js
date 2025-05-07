@@ -104,6 +104,8 @@ class App {
                     document.getElementById('channelInfo').hidden = false;
                 }
                 
+            
+
                 await Promise.all([
                     this.userManager.loadUsers(),
                     this.channels.loadChannels(),
@@ -111,9 +113,7 @@ class App {
                     this.startPolling()
                 ]);
 
-        
-
-               
+                
                 
             }
         } catch (error) {
